@@ -1,0 +1,38 @@
+name: Verify GitHub Pages
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: read
+  actions: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Pages and public site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pages_status=$(curl --silent --show-error --output pages.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPOSITORY}/pages")
+          site_status=$(curl --silent --show-error --location --output site.html --write-out '%{http_code}' \
+            'https://krisraves.github.io/IT-Manager-Simulator-/')
+          printf 'pages_api_status=%s\npublic_site_status=%s\n' "${pages_status}" "${site_status}" > status.txt
+
+      - name: Upload verification result
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-verification
+          path: |
+            pages.json
+            site.html
+            status.txt
+          if-no-files-found: error
