@@ -26,10 +26,10 @@
       const tab = button?.dataset.tab as PanelTab | undefined;
       if (!tab) return;
       this.activeTab = tab;
+      this.openAssignmentTicketId = null;
       this.renderPanel();
     });
     this.requireElement<HTMLElement>('panel-content').addEventListener('click', this.onPanelClick);
-    this.requireElement<HTMLElement>('panel-content').addEventListener('change', this.onPanelChange);
   }
 
   private renderTopbar(): void {
@@ -94,5 +94,52 @@
   private ticketDetails(ticket: Ticket): string {
     const total = ticket.effort + ticket.hiddenComplexity;
     const progress = clamp((1 - ticket.remaining / total) * 100);
+    const assignedTechnician = this.state.technicians.find((technician) => technician.id === ticket.assignedTo);
+    const menuOpen = this.openAssignmentTicketId === ticket.id;
+    const listId = `assignment-list-${ticket.id}`;
     const options = [
-      '<option value="">Unassigned</option>',
+      {
+        id: '',
+        name: 'Unassigned',
+        detail: 'Return this ticket to the queue',
+        color: 0x8795a1,
+      },
+      ...this.state.technicians.map((technician) => ({
+        id: technician.id,
+        name: technician.name,
+        detail: `${technician.role} · ${this.skillFit(technician, ticket)} fit${technician.currentTicketId && technician.currentTicketId !== ticket.id ? ' · currently busy' : ''}`,
+        color: technician.color,
+      })),
+    ].map((option) => {
+      const selected = ticket.assignedTo === (option.id || null);
+      const initial = option.id ? option.name.charAt(0) : '—';
+      return `
+        <button type="button" class="assignment-option ${selected ? 'selected' : ''}" role="option" aria-selected="${selected}" data-assignment-choice data-ticket-id="${ticket.id}" data-technician-id="${option.id}">
+          <span class="assignment-avatar" style="--assignment-color:#${option.color.toString(16).padStart(6, '0')}">${escapeHtml(initial)}</span>
+          <span class="assignment-copy"><strong>${escapeHtml(option.name)}</strong><small>${escapeHtml(option.detail)}</small></span>
+          <span class="assignment-check" aria-hidden="true">${selected ? '✓' : ''}</span>
+        </button>`;
+    }).join('');
+
+    return `
+      <div class="detail-header"><span class="priority-badge p${ticket.severity}">P${ticket.severity}</span><span>${ticket.id}</span></div>
+      <h3>${escapeHtml(ticket.title)}</h3>
+      <p>${escapeHtml(ticket.requester)} · ${escapeHtml(ticket.category)} · impact ${ticket.businessImpact}</p>
+      <div class="progress-row"><span>Work progress</span><strong>${Math.round(progress)}%</strong></div>
+      <div class="progress-track"><i style="width:${progress}%"></i></div>
+      <dl class="detail-grid">
+        <div><dt>Required skill</dt><dd>${ticket.requiredSkill}/10</dd></div>
+        <div><dt>Security risk</dt><dd>${ticket.securityRisk}</dd></div>
+        <div><dt>SLA due</dt><dd>${formatTime(ticket.slaDueMinute)}</dd></div>
+        <div><dt>Escalations</dt><dd>${ticket.escalationLevel}</dd></div>
+      </dl>
+      <span class="field-label" id="assignment-label-${ticket.id}">Assign technician</span>
+      <div class="assignment-picker">
+        <button type="button" class="assignment-trigger" data-assignment-toggle="${ticket.id}" aria-haspopup="listbox" aria-expanded="${menuOpen}" aria-controls="${listId}" aria-labelledby="assignment-label-${ticket.id}">
+          <span><small>Current assignment</small><strong>${escapeHtml(assignedTechnician?.name ?? 'Unassigned')}</strong></span>
+          <span class="assignment-chevron" aria-hidden="true">${menuOpen ? '▴' : '▾'}</span>
+        </button>
+        ${menuOpen ? `<div id="${listId}" class="assignment-listbox" role="listbox" aria-labelledby="assignment-label-${ticket.id}">${options}</div>` : ''}
+      </div>
+      <p class="hint">Assigning a busy technician returns their current ticket to the queue. Parallel work remains unavailable because people are not Kubernetes.</p>`;
+  }
