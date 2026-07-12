@@ -23,18 +23,23 @@
   };
 
   private updateMovement(delta: number): void {
-    if (!this.inputEnabled || document.pointerLockElement !== this.renderer.domElement) return;
-    let forward = 0;
-    let strafe = 0;
-    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) forward += 1;
-    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) forward -= 1;
-    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) strafe += 1;
-    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) strafe -= 1;
+    if (!this.inputEnabled) return;
+    let forward = this.touchForward;
+    let strafe = this.touchStrafe;
+    const keyboardActive = document.pointerLockElement === this.renderer.domElement;
+    if (keyboardActive) {
+      if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) forward += 1;
+      if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) forward -= 1;
+      if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) strafe += 1;
+      if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) strafe -= 1;
+    }
     if (forward === 0 && strafe === 0) return;
 
     const length = Math.hypot(forward, strafe);
-    forward /= length;
-    strafe /= length;
+    if (length > 1) {
+      forward /= length;
+      strafe /= length;
+    }
     const sin = Math.sin(this.yaw);
     const cos = Math.cos(this.yaw);
     const dx = (strafe * cos - forward * sin) * WALK_SPEED * delta;
