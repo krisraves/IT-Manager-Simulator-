@@ -38,6 +38,13 @@ export class GameInterface {
   private currentSpeed = 1;
   private dialogueTimer: number | null = null;
   private toastTimer: number | null = null;
+  private panelScrollTop = 0;
+  private ticketListScrollTop = 0;
+  private assignmentListScrollTop = 0;
+  private panelPointerActive = false;
+  private panelScrollTimer: number | null = null;
+  private pendingPanelRender = false;
+  private restoringScroll = false;
 
   public constructor(root: HTMLElement, initialState: Readonly<GameState>, callbacks: UiCallbacks) {
     this.root = root;
@@ -56,7 +63,8 @@ export class GameInterface {
       this.openAssignmentTicketId = null;
     }
     this.renderTopbar();
-    this.renderPanel();
+    if (this.isPanelInteractionBusy()) this.pendingPanelRender = true;
+    else this.renderPanel(true);
     this.renderDecision();
   }
 
@@ -110,7 +118,7 @@ export class GameInterface {
   public setSimulationSpeed(speed: number): void {
     this.currentSpeed = speed;
     this.renderTopbar();
-    if (this.activeTab === 'tickets' || this.activeTab === 'operations') this.renderPanel();
+    if (this.activeTab === 'tickets' || this.activeTab === 'operations') this.renderPanel(true);
   }
 
   public togglePanel(): void {
