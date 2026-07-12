@@ -1,0 +1,363 @@
+html,
+body {
+  overscroll-behavior: none;
+}
+
+#game-canvas {
+  touch-action: none;
+}
+
+#display-mode-toggle {
+  position: fixed;
+  z-index: 60;
+  top: max(88px, calc(env(safe-area-inset-top) + 80px));
+  left: max(10px, env(safe-area-inset-left));
+  border: 1px solid rgba(165, 193, 216, 0.28);
+  border-radius: 999px;
+  background: rgba(7, 13, 19, 0.78);
+  color: #b7c8d4;
+  padding: 6px 9px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  opacity: 0.72;
+}
+
+#display-mode-toggle:hover,
+#display-mode-toggle:focus-visible {
+  opacity: 1;
+}
+
+#orientation-hint {
+  position: fixed;
+  z-index: 58;
+  top: max(92px, calc(env(safe-area-inset-top) + 84px));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 140px);
+  border: 1px solid rgba(255, 198, 92, 0.42);
+  background: rgba(24, 20, 11, 0.9);
+  color: #ffe1a6;
+  padding: 7px 10px;
+  font-size: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+
+#mobile-controls {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#mobile-look-zone {
+  position: absolute;
+  z-index: 1;
+  top: max(82px, calc(env(safe-area-inset-top) + 74px));
+  right: 0;
+  bottom: 0;
+  width: 62%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#mobile-move-pad {
+  position: absolute;
+  z-index: 3;
+  left: max(20px, calc(env(safe-area-inset-left) + 14px));
+  bottom: max(24px, calc(env(safe-area-inset-bottom) + 18px));
+  width: clamp(118px, 25vw, 164px);
+  aspect-ratio: 1;
+  border: 2px solid rgba(233, 245, 252, 0.2);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(103, 216, 255, 0.08) 0 28%, transparent 29%),
+    rgba(5, 11, 17, 0.42);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.25), 0 14px 34px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  touch-action: none;
+  backdrop-filter: blur(5px);
+}
+
+#mobile-move-pad::before,
+#mobile-move-pad::after {
+  content: "";
+  position: absolute;
+  background: rgba(233, 245, 252, 0.14);
+  pointer-events: none;
+}
+
+#mobile-move-pad::before {
+  left: 50%;
+  top: 12%;
+  bottom: 12%;
+  width: 1px;
+}
+
+#mobile-move-pad::after {
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+}
+
+#mobile-move-knob {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: 42%;
+  aspect-ratio: 1;
+  margin: -21%;
+  border: 2px solid rgba(207, 241, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(103, 216, 255, 0.26);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.mobile-action-button {
+  position: absolute;
+  z-index: 4;
+  min-width: 76px;
+  min-height: 54px;
+  border: 1px solid rgba(214, 237, 249, 0.38);
+  border-radius: 50%;
+  background: rgba(8, 16, 24, 0.68);
+  color: #edf5fb;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+  touch-action: manipulation;
+  backdrop-filter: blur(8px);
+}
+
+.mobile-action-button:active {
+  transform: scale(0.94);
+  background: rgba(103, 216, 255, 0.36);
+}
+
+#mobile-interact {
+  right: max(26px, calc(env(safe-area-inset-right) + 20px));
+  bottom: max(38px, calc(env(safe-area-inset-bottom) + 30px));
+  width: 86px;
+  height: 86px;
+  border-color: rgba(103, 216, 255, 0.68);
+}
+
+#mobile-console {
+  right: max(126px, calc(env(safe-area-inset-right) + 120px));
+  bottom: max(26px, calc(env(safe-area-inset-bottom) + 20px));
+  border-radius: 12px;
+}
+
+#mobile-speed {
+  right: max(28px, calc(env(safe-area-inset-right) + 22px));
+  bottom: max(138px, calc(env(safe-area-inset-bottom) + 130px));
+  min-width: 64px;
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+#mobile-controls.panel-open #mobile-look-zone,
+#mobile-controls.panel-open #mobile-move-pad,
+#mobile-controls.panel-open #mobile-interact,
+#mobile-controls.panel-open #mobile-speed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#mobile-controls.panel-open #mobile-console {
+  right: max(18px, calc(env(safe-area-inset-right) + 12px));
+  bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
+}
+
+.mobile-mode body,
+body.mobile-mode {
+  touch-action: none;
+}
+
+body.mobile-mode #topbar {
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  grid-template-columns: 1.1fr 0.95fr 0.8fr 0.8fr;
+  gap: 5px;
+  min-height: 58px;
+}
+
+body.mobile-mode #topbar > div {
+  min-width: 0;
+  padding: 8px;
+}
+
+body.mobile-mode #topbar > :nth-child(n + 5) {
+  display: none;
+}
+
+body.mobile-mode .brand-block strong,
+body.mobile-mode .clock-block strong,
+body.mobile-mode .metric strong {
+  font-size: 14px;
+}
+
+body.mobile-mode .brand-block span,
+body.mobile-mode .clock-block span,
+body.mobile-mode .metric span {
+  font-size: 8px;
+}
+
+body.mobile-mode #panel-toggle {
+  display: none;
+}
+
+body.mobile-mode #management-panel {
+  z-index: 30;
+  top: max(72px, calc(env(safe-area-inset-top) + 66px));
+  left: max(7px, env(safe-area-inset-left));
+  right: max(7px, env(safe-area-inset-right));
+  bottom: max(7px, env(safe-area-inset-bottom));
+  width: auto;
+  border-radius: 8px;
+}
+
+body.mobile-mode #management-panel.hidden-panel {
+  transform: translateY(calc(100% + 32px));
+}
+
+body.mobile-mode #panel-tabs button {
+  min-height: 46px;
+  padding: 10px 4px;
+  font-size: 11px;
+}
+
+body.mobile-mode #panel-content {
+  padding: 12px;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.mobile-mode .ticket-layout,
+body.mobile-mode .team-grid,
+body.mobile-mode .ops-grid {
+  grid-template-columns: 1fr;
+}
+
+body.mobile-mode .ticket-list {
+  max-height: 31vh;
+}
+
+body.mobile-mode .ticket-card,
+body.mobile-mode .team-card,
+body.mobile-mode .upgrade-card,
+body.mobile-mode .control-card {
+  min-height: 48px;
+}
+
+body.mobile-mode button,
+body.mobile-mode select {
+  min-height: 42px;
+}
+
+body.mobile-mode #interaction-prompt {
+  bottom: max(148px, calc(env(safe-area-inset-bottom) + 140px));
+  max-width: 54vw;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+body.mobile-mode #dialogue {
+  bottom: max(124px, calc(env(safe-area-inset-bottom) + 116px));
+  max-width: min(680px, calc(100vw - 28px));
+  font-size: 12px;
+}
+
+body.mobile-mode .toast {
+  top: max(72px, calc(env(safe-area-inset-top) + 66px));
+  max-width: calc(100vw - 24px);
+  font-size: 12px;
+}
+
+body.mobile-mode .modal-layer {
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  overflow: auto;
+  touch-action: pan-y;
+}
+
+body.mobile-mode .modal-card {
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 20px;
+}
+
+body.mobile-mode .start-card h1 {
+  font-size: clamp(32px, 10vw, 52px);
+}
+
+body.mobile-mode .controls-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 16px 0;
+}
+
+body.mobile-mode .controls-grid span {
+  min-height: 34px;
+  font-size: 11px;
+}
+
+body.mobile-mode #crosshair {
+  opacity: 0.72;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  #mobile-move-pad {
+    width: clamp(112px, 32vw, 148px);
+  }
+
+  #mobile-interact {
+    width: 78px;
+    height: 78px;
+  }
+
+  #mobile-console {
+    right: max(112px, calc(env(safe-area-inset-right) + 106px));
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  #mobile-move-pad {
+    width: clamp(104px, 22vh, 132px);
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  #mobile-interact {
+    width: 72px;
+    height: 72px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  #mobile-console {
+    bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  #mobile-speed {
+    bottom: max(98px, calc(env(safe-area-inset-bottom) + 90px));
+  }
+
+  body.mobile-mode #dialogue {
+    bottom: max(92px, calc(env(safe-area-inset-bottom) + 84px));
+  }
+}
