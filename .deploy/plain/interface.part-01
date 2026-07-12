@@ -32,9 +32,6 @@
     const panelContent = this.requireElement<HTMLElement>('panel-content');
     panelContent.addEventListener('click', this.onPanelClick);
     panelContent.addEventListener('scroll', this.onPanelScroll, { capture: true, passive: true });
-    panelContent.addEventListener('pointerdown', this.onPanelPointerDown, { passive: true });
-    window.addEventListener('pointerup', this.onPanelPointerEnd, { passive: true });
-    window.addEventListener('pointercancel', this.onPanelPointerEnd, { passive: true });
   }
 
   private renderTopbar(): void {
@@ -70,6 +67,7 @@
     else content.innerHTML = this.logPanel();
     this.restoreScrollPositions(content);
     this.pendingPanelRender = false;
+    this.panelInitialized = true;
   }
 
   private ticketPanel(): string {
