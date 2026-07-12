@@ -1,0 +1,14 @@
+#panel-content,
+.ticket-list,
+.assignment-listbox {
+  overflow-anchor: none;
+  scroll-behavior: auto;
+}
+
+body.mobile-mode #panel-content,
+body.mobile-mode .ticket-list,
+body.mobile-mode .assignment-listbox {
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
