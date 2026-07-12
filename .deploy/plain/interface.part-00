@@ -34,6 +34,7 @@ export class GameInterface {
   private panelVisible = true;
   private activeTab: PanelTab = 'tickets';
   private selectedTicketId: string | null = null;
+  private openAssignmentTicketId: string | null = null;
   private currentSpeed = 1;
   private dialogueTimer: number | null = null;
   private toastTimer: number | null = null;
@@ -50,6 +51,9 @@ export class GameInterface {
     this.state = state;
     if (this.selectedTicketId && !state.tickets.some((ticket) => ticket.id === this.selectedTicketId && ticket.status !== 'resolved' && ticket.status !== 'failed')) {
       this.selectedTicketId = null;
+    }
+    if (this.openAssignmentTicketId && !state.tickets.some((ticket) => ticket.id === this.openAssignmentTicketId && ticket.status !== 'resolved' && ticket.status !== 'failed')) {
+      this.openAssignmentTicketId = null;
     }
     this.renderTopbar();
     this.renderPanel();
@@ -115,6 +119,7 @@ export class GameInterface {
 
   public setPanelVisible(visible: boolean): void {
     this.panelVisible = visible;
+    if (!visible) this.openAssignmentTicketId = null;
     const panel = this.requireElement<HTMLElement>('management-panel');
     panel.classList.toggle('hidden-panel', !visible);
     const button = this.requireElement<HTMLButtonElement>('panel-toggle');
