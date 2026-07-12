@@ -1,0 +1,110 @@
+        this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction - 4);
+        this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence - (ticket.severity <= 2 ? 5 : 2));
+        this.addLog('bad', `${ticket.id} breached SLA. The requester has discovered the CC field.`);
+        this.toast('bad', `${ticket.id} breached SLA.`);
+      }
+    }
+  }
+
+  private runScriptedEvents(): void {
+    if (this.state.minute >= 10 * 60 && !this.state.scriptedFlags.allHands) {
+      this.state.scriptedFlags.allHands = true;
+      this.addTicket({
+        title: 'All-hands room has video but no audio', requester: 'Chief of Staff', category: 'hardware', severity: 2,
+        businessImpact: 72, requiredSkill: 5, effort: 52, hiddenComplexity: 9, securityRisk: 0, slaMinutes: 70,
+      });
+      this.toast('warning', 'Urgent ticket: all-hands audio failure.');
+    }
+
+    if (this.state.minute >= 11 * 60 + 30 && !this.state.scriptedFlags.certificateEscalation) {
+      this.state.scriptedFlags.certificateEscalation = true;
+      const certificate = this.state.tickets.find((ticket) => ticket.title.includes('certificate'));
+      if (certificate && certificate.status !== 'resolved') {
+        certificate.remaining += 28;
+        certificate.escalationLevel += 1;
+        this.state.metrics.security = clamp(this.state.metrics.security - 7);
+        this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence - 3);
+        this.addLog('warning', 'The certificate warning is now a certificate incident. Time, much like DNS, continues to function despite management objections.');
+        this.toast('warning', 'Certificate incident escalated.');
+      } else {
+        this.addLog('good', 'The production certificate was handled before escalation. An unfamiliar calm settles over the server room.');
+      }
+    }
+
+    if (this.state.minute >= 13 * 60 + 15 && !this.state.scriptedFlags.shadowIt) {
+      this.state.scriptedFlags.shadowIt = true;
+      this.openDecision('shadowIt');
+    }
+
+    if (this.state.minute >= 15 * 60 && !this.state.scriptedFlags.vendorOutage) {
+      this.state.scriptedFlags.vendorOutage = true;
+      this.openDecision('vendorOutage');
+    }
+  }
+
+  private maybeGenerateTicket(): void {
+    if (this.state.minute % 15 !== 0) return;
+    const openCount = this.state.tickets.filter((ticket) => ticket.status !== 'resolved' && ticket.status !== 'failed').length;
+    if (openCount >= 10) return;
+    const chance = 0.32 + Math.max(0, this.state.metrics.technicalDebt - 50) / 250;
+    if (this.rng.next() < chance) {
+      const template = this.rng.pick(RANDOM_TICKETS);
+      this.state.tickets.push(createTicket(template, Simulation.createTicketId(this.state), this.state.minute));
+      this.addLog('warning', `New ticket: ${template.title}.`);
+      this.toast('warning', 'A new ticket entered the queue. It claims to be quick.');
+    }
+  }
+
+  private addTicket(input: {
+    title: string; requester: string; category: Ticket['category']; severity: Ticket['severity']; businessImpact: number;
+    requiredSkill: number; effort: number; hiddenComplexity: number; securityRisk: number; slaMinutes: number;
+  }): void {
+    const ticket: Ticket = {
+      id: Simulation.createTicketId(this.state),
+      title: input.title,
+      requester: input.requester,
+      category: input.category,
+      severity: input.severity,
+      businessImpact: input.businessImpact,
+      requiredSkill: input.requiredSkill,
+      effort: input.effort,
+      hiddenComplexity: input.hiddenComplexity,
+      securityRisk: input.securityRisk,
+      createdMinute: this.state.minute,
+      slaDueMinute: this.state.minute + input.slaMinutes,
+      remaining: input.effort + input.hiddenComplexity,
+      status: 'unassigned',
+      assignedTo: null,
+      escalationLevel: 0,
+      slaBreached: false,
+      resolutionNote: null,
+    };
+    this.state.tickets.push(ticket);
+    this.addLog('warning', `New ${ticket.id}: ${ticket.title}.`);
+  }
+
+  private openDecision(key: keyof typeof DECISIONS): void {
+    const decision = DECISIONS[key];
+    if (!decision) throw new Error(`Unknown decision content: ${String(key)}`);
+    this.state.pendingDecision = structuredClone(decision);
+    this.addLog('warning', `Management decision required: ${decision.title}.`);
+    this.emit({ type: 'decision', decision });
+  }
+
+  private resolveShadowIt(optionId: string): void {
+    if (optionId === 'block') {
+      this.state.metrics.security = clamp(this.state.metrics.security + 10);
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence - 5);
+      this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction - 2);
+      this.addTicket({ title: 'Remove unauthorized calendar integration', requester: 'Security', category: 'security', severity: 2, businessImpact: 55, requiredSkill: 7, effort: 58, hiddenComplexity: 12, securityRisk: 18, slaMinutes: 150 });
+      this.addLog('good', 'Shadow IT blocked. Product has described governance as “anti-innovation,” confirming the policy worked.');
+    } else if (optionId === 'pilot') {
+      if (this.state.metrics.budget < 700) throw new Error('The controlled pilot requires $700. Finance has controlled it into nonexistence.');
+      this.state.metrics.budget -= 700;
+      this.state.metrics.security = clamp(this.state.metrics.security + 3);
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence + 2);
+      for (const technician of this.state.technicians) technician.stress = clamp(technician.stress + 2);
+      this.addLog('info', 'Controlled pilot approved with scoped permissions and an owner. Reckless enthusiasm has been converted into paperwork.');
+    } else if (optionId === 'ignore') {
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence + 5);
+      this.state.metrics.security = clamp(this.state.metrics.security - 16);
