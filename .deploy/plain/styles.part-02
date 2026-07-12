@@ -1,0 +1,35 @@
+.controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 22px 0; color: #b9cad6; font-size: 13px; }
+.controls-grid span { display: flex; gap: 8px; align-items: center; }
+.decision-options { display: grid; gap: 9px; margin-top: 20px; }
+.decision-options button { border: 1px solid var(--line); background: rgba(255,255,255,.025); text-align: left; padding: 13px; cursor: pointer; display: grid; gap: 3px; }
+.decision-options button:hover { background: rgba(103,216,255,.09); border-color: rgba(103,216,255,.4); }
+.decision-options span { color: var(--muted); font-size: 12px; }
+.summary-card { text-align: center; }
+.grade-badge { width: 110px; height: 110px; margin: 20px auto 8px; display: grid; place-items: center; border: 3px solid var(--accent); clip-path: polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%); font-size: 60px; font-weight: 950; color: var(--accent); }
+.summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 22px 0; }
+.summary-grid div { border: 1px solid var(--line); padding: 12px; display: grid; }
+.summary-grid strong { font-size: 24px; }
+.summary-grid span { color: var(--muted); font-size: 11px; }
+.empty-state { padding: 30px 10px; text-align: center; color: var(--muted); }
+
+@media (max-width: 900px) {
+  #topbar { grid-template-columns: 1fr 1fr repeat(2, .8fr); }
+  #topbar .metric:nth-of-type(n+5), #topbar .budget-block { display: none; }
+  #management-panel { top: 94px; left: 14px; width: auto; }
+  .ticket-layout { grid-template-columns: 1fr; }
+  .ticket-list { max-height: 220px; }
+  .team-grid, .ops-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  #topbar { left: 8px; right: 8px; top: 8px; grid-template-columns: 1fr 1fr; }
+  #topbar .metric { display: none; }
+  #management-panel { top: 86px; left: 8px; right: 8px; bottom: 56px; }
+  #panel-content { padding: 12px; }
+  .controls-grid, .summary-grid, .save-controls { grid-template-columns: 1fr; }
+  .save-controls h3 { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
