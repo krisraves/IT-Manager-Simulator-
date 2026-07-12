@@ -1,0 +1,173 @@
+.assignment-picker {
+  position: relative;
+  width: 100%;
+}
+
+.assignment-trigger {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #14202b;
+  color: #edf5fb;
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.assignment-trigger:hover,
+.assignment-trigger[aria-expanded="true"] {
+  border-color: rgba(103, 216, 255, 0.55);
+  background: rgba(103, 216, 255, 0.1);
+}
+
+.assignment-trigger > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.assignment-trigger small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assignment-trigger strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.assignment-chevron {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 17px;
+}
+
+.assignment-listbox {
+  width: 100%;
+  max-height: 292px;
+  margin-top: 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(103, 216, 255, 0.34);
+  border-radius: 5px;
+  background: #0f1923;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
+  padding: 5px;
+  touch-action: pan-y;
+}
+
+.assignment-option {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #edf5fb;
+  padding: 7px 8px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.assignment-option + .assignment-option {
+  margin-top: 3px;
+}
+
+.assignment-option:hover,
+.assignment-option:focus-visible {
+  border-color: rgba(103, 216, 255, 0.34);
+  background: rgba(103, 216, 255, 0.09);
+}
+
+.assignment-option.selected {
+  background: rgba(112, 225, 165, 0.08);
+}
+
+.assignment-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: var(--assignment-color);
+  color: #071019;
+  font-weight: 900;
+}
+
+.assignment-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.assignment-copy strong,
+.assignment-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignment-copy strong {
+  font-size: 13px;
+}
+
+.assignment-copy small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.assignment-check {
+  color: var(--good);
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+}
+
+body.mobile-mode .assignment-trigger {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+body.mobile-mode .assignment-listbox {
+  max-height: min(46vh, 340px);
+  margin-top: 7px;
+  padding: 6px;
+}
+
+body.mobile-mode .assignment-option {
+  min-height: 60px;
+  grid-template-columns: 42px minmax(0, 1fr) 26px;
+  gap: 10px;
+  padding: 8px;
+}
+
+body.mobile-mode .assignment-avatar {
+  width: 38px;
+  height: 38px;
+}
+
+body.mobile-mode .assignment-copy strong {
+  font-size: 14px;
+}
+
+body.mobile-mode .assignment-copy small {
+  font-size: 11px;
+}
