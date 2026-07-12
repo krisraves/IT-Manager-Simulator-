@@ -1,0 +1,143 @@
+import { SHIFT_END, SHIFT_START } from '../core/content';
+import { formatTime } from '../core/simulation';
+import type { DaySummary, EventLogEntry, GameState, Technician, Ticket } from '../core/types';
+
+export type PanelTab = 'tickets' | 'team' | 'operations' | 'log';
+
+export interface UiCallbacks {
+  readonly onAssign: (ticketId: string, technicianId: string | null) => void;
+  readonly onTrain: (technicianId: string) => void;
+  readonly onPurchase: (upgradeId: 'spares' | 'monitoring') => void;
+  readonly onDecision: (optionId: string) => void;
+  readonly onSave: () => void;
+  readonly onLoad: () => void;
+  readonly onEndDay: () => void;
+  readonly onNewDay: () => void;
+  readonly onSpeedChange: (speed: number) => void;
+  readonly onPanelVisibilityChange: (visible: boolean) => void;
+  readonly onStart: () => void;
+}
+
+const escapeHtml = (value: string): string => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
+
+const clamp = (value: number, min = 0, max = 100): number => Math.min(max, Math.max(min, value));
+
+export class GameInterface {
+  private readonly root: HTMLElement;
+  private readonly callbacks: UiCallbacks;
+  private state: Readonly<GameState>;
+  private panelVisible = true;
+  private activeTab: PanelTab = 'tickets';
+  private selectedTicketId: string | null = null;
+  private currentSpeed = 1;
+  private dialogueTimer: number | null = null;
+  private toastTimer: number | null = null;
+
+  public constructor(root: HTMLElement, initialState: Readonly<GameState>, callbacks: UiCallbacks) {
+    this.root = root;
+    this.state = initialState;
+    this.callbacks = callbacks;
+    this.renderShell();
+    this.render(initialState);
+  }
+
+  public render(state: Readonly<GameState>): void {
+    this.state = state;
+    if (this.selectedTicketId && !state.tickets.some((ticket) => ticket.id === this.selectedTicketId && ticket.status !== 'resolved' && ticket.status !== 'failed')) {
+      this.selectedTicketId = null;
+    }
+    this.renderTopbar();
+    this.renderPanel();
+    this.renderDecision();
+  }
+
+  public setInteractionLabel(label: string | null): void {
+    const prompt = this.requireElement<HTMLElement>('interaction-prompt');
+    prompt.hidden = label === null;
+    prompt.innerHTML = label ? `<kbd>E</kbd><span>${escapeHtml(label)}</span>` : '';
+  }
+
+  public showDialogue(message: string): void {
+    const element = this.requireElement<HTMLElement>('dialogue');
+    element.textContent = message;
+    element.hidden = false;
+    if (this.dialogueTimer !== null) window.clearTimeout(this.dialogueTimer);
+    this.dialogueTimer = window.setTimeout(() => { element.hidden = true; }, 6_500);
+  }
+
+  public showToast(tone: EventLogEntry['tone'], message: string): void {
+    const element = this.requireElement<HTMLElement>('toast');
+    element.className = `toast ${tone}`;
+    element.textContent = message;
+    element.hidden = false;
+    if (this.toastTimer !== null) window.clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => { element.hidden = true; }, 4_200);
+  }
+
+  public showSummary(summary: DaySummary): void {
+    const modal = this.requireElement<HTMLElement>('summary-modal');
+    modal.innerHTML = `
+      <section class="modal-card summary-card" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+        <p class="eyebrow">END OF DAY REPORT</p>
+        <div class="grade-badge">${escapeHtml(summary.grade)}</div>
+        <h2 id="summary-title">${summary.score} / 100</h2>
+        <p>${escapeHtml(summary.headline)}</p>
+        <div class="summary-grid">
+          <div><strong>${summary.resolved}</strong><span>Resolved</span></div>
+          <div><strong>${summary.breached}</strong><span>SLA breaches</span></div>
+          <div><strong>${summary.backlog}</strong><span>Backlog</span></div>
+        </div>
+        <button class="primary-button" data-action="new-day">Start a fresh day</button>
+      </section>`;
+    modal.hidden = false;
+    modal.querySelector<HTMLButtonElement>('[data-action="new-day"]')?.addEventListener('click', this.callbacks.onNewDay);
+  }
+
+  public isPanelVisible(): boolean {
+    return this.panelVisible;
+  }
+
+  public togglePanel(): void {
+    this.setPanelVisible(!this.panelVisible);
+  }
+
+  public setPanelVisible(visible: boolean): void {
+    this.panelVisible = visible;
+    const panel = this.requireElement<HTMLElement>('management-panel');
+    panel.classList.toggle('hidden-panel', !visible);
+    const button = this.requireElement<HTMLButtonElement>('panel-toggle');
+    button.setAttribute('aria-expanded', String(visible));
+    button.textContent = visible ? 'Close console' : 'Open console';
+    this.callbacks.onPanelVisibilityChange(visible);
+  }
+
+  public dismissStartOverlay(): void {
+    this.requireElement<HTMLElement>('start-overlay').hidden = true;
+  }
+
+  private renderShell(): void {
+    this.root.innerHTML = `
+      <main id="game-shell">
+        <div id="world-host"></div>
+        <header id="topbar" aria-label="Department metrics"></header>
+        <button id="panel-toggle" class="floating-button" aria-expanded="true">Close console</button>
+        <aside id="management-panel" aria-label="Management console">
+          <nav id="panel-tabs" aria-label="Console sections">
+            <button data-tab="tickets">Tickets</button>
+            <button data-tab="team">Team</button>
+            <button data-tab="operations">Operations</button>
+            <button data-tab="log">Activity</button>
+          </nav>
+          <div id="panel-content"></div>
+        </aside>
+        <div id="crosshair" aria-hidden="true"></div>
+        <div id="interaction-prompt" hidden></div>
+        <div id="dialogue" hidden role="status"></div>
+        <div id="toast" hidden role="status"></div>
+        <div id="decision-modal" class="modal-layer" hidden></div>
+        <div id="summary-modal" class="modal-layer" hidden></div>
