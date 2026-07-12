@@ -27,9 +27,14 @@
       if (!tab) return;
       this.activeTab = tab;
       this.openAssignmentTicketId = null;
-      this.renderPanel();
+      this.renderPanel(false);
     });
-    this.requireElement<HTMLElement>('panel-content').addEventListener('click', this.onPanelClick);
+    const panelContent = this.requireElement<HTMLElement>('panel-content');
+    panelContent.addEventListener('click', this.onPanelClick);
+    panelContent.addEventListener('scroll', this.onPanelScroll, { capture: true, passive: true });
+    panelContent.addEventListener('pointerdown', this.onPanelPointerDown, { passive: true });
+    window.addEventListener('pointerup', this.onPanelPointerEnd, { passive: true });
+    window.addEventListener('pointercancel', this.onPanelPointerEnd, { passive: true });
   }
 
   private renderTopbar(): void {
@@ -51,16 +56,20 @@
     return `<div class="metric ${className}"><span>${label}</span><strong>${value}</strong><i style="--value:${clamp(amount)}%"></i></div>`;
   }
 
-  private renderPanel(): void {
+  private renderPanel(preserveScroll = true): void {
     const tabs = this.requireElement<HTMLElement>('panel-tabs');
     tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
       button.classList.toggle('active', button.dataset.tab === this.activeTab);
     });
     const content = this.requireElement<HTMLElement>('panel-content');
+    if (preserveScroll) this.captureScrollPositions(content);
+    else this.resetScrollPositions();
     if (this.activeTab === 'tickets') content.innerHTML = this.ticketPanel();
     else if (this.activeTab === 'team') content.innerHTML = this.teamPanel();
     else if (this.activeTab === 'operations') content.innerHTML = this.operationsPanel();
     else content.innerHTML = this.logPanel();
+    this.restoreScrollPositions(content);
+    this.pendingPanelRender = false;
   }
 
   private ticketPanel(): string {
