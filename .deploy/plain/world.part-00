@@ -29,6 +29,9 @@ export class OfficeWorld {
   private readonly callbacks: WorldCallbacks;
   private readonly container: HTMLElement;
   private inputEnabled = true;
+  private mobileMode = false;
+  private touchForward = 0;
+  private touchStrafe = 0;
   private yaw = 0;
   private pitch = 0;
   private animationFrame = 0;
@@ -59,13 +62,43 @@ export class OfficeWorld {
   }
 
   public requestPointerLock(): void {
-    if (this.inputEnabled) void this.renderer.domElement.requestPointerLock();
+    if (this.inputEnabled && !this.mobileMode) void this.renderer.domElement.requestPointerLock();
+  }
+
+  public setMobileMode(enabled: boolean): void {
+    this.mobileMode = enabled;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, enabled ? 1.15 : 1.75));
+    this.renderer.shadowMap.enabled = !enabled;
+    if (enabled && document.pointerLockElement === this.renderer.domElement) document.exitPointerLock();
+    if (!enabled) this.setTouchMovement(0, 0);
+    this.resize();
+  }
+
+  public setTouchMovement(strafe: number, forward: number): void {
+    if (!this.mobileMode || !this.inputEnabled) {
+      this.touchStrafe = 0;
+      this.touchForward = 0;
+      return;
+    }
+    this.touchStrafe = THREE.MathUtils.clamp(strafe, -1, 1);
+    this.touchForward = THREE.MathUtils.clamp(forward, -1, 1);
+  }
+
+  public addTouchLook(deltaX: number, deltaY: number): void {
+    if (!this.mobileMode || !this.inputEnabled) return;
+    this.yaw -= deltaX * 0.0042;
+    this.pitch -= deltaY * 0.0036;
+    this.pitch = THREE.MathUtils.clamp(this.pitch, -1.28, 1.28);
   }
 
   public setInputEnabled(enabled: boolean): void {
     this.inputEnabled = enabled;
     if (!enabled && document.pointerLockElement === this.renderer.domElement) document.exitPointerLock();
     this.keys.clear();
+    if (!enabled) {
+      this.touchForward = 0;
+      this.touchStrafe = 0;
+    }
   }
 
   public isPointerLocked(): boolean {
