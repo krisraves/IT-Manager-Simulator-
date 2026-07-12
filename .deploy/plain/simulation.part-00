@@ -1,0 +1,162 @@
+import { DECISIONS, INITIAL_TICKETS, RANDOM_TICKETS, SHIFT_END, SHIFT_START, createTechnicians, createTicket } from './content';
+import { SeededRng } from './rng';
+import type { DaySummary, EventLogEntry, GameState, SimulationEvent, Technician, Ticket } from './types';
+
+type Listener = (event: SimulationEvent) => void;
+
+const clamp = (value: number, min = 0, max = 100): number => Math.min(max, Math.max(min, value));
+
+export class Simulation {
+  private state: GameState;
+  private readonly listeners = new Set<Listener>();
+  private readonly rng: SeededRng;
+
+  public constructor(seed = Date.now() >>> 0, restoredState?: GameState) {
+    this.state = restoredState ? structuredClone(restoredState) : Simulation.createInitialState(seed);
+    this.rng = new SeededRng(this.state.rngState);
+  }
+
+  public static createInitialState(seed: number): GameState {
+    const normalizedSeed = seed >>> 0 || 1;
+    const tickets = INITIAL_TICKETS.map((template, index) => createTicket(template, `T-${101 + index}`, SHIFT_START));
+    return {
+      version: 1,
+      seed: normalizedSeed,
+      rngState: normalizedSeed,
+      day: 1,
+      minute: SHIFT_START,
+      dayEnded: false,
+      score: null,
+      metrics: {
+        uptime: 99.9,
+        sla: 100,
+        security: 62,
+        morale: 74,
+        budget: 12_000,
+        executiveConfidence: 64,
+        userSatisfaction: 70,
+        technicalDebt: 44,
+        reputation: 60,
+      },
+      technicians: createTechnicians(),
+      tickets,
+      log: [{ id: 1, minute: SHIFT_START, tone: 'info', message: 'Shift started. Five tickets are waiting. Naturally, one is about a printer.' }],
+      pendingDecision: null,
+      scriptedFlags: {},
+      nextTicketNumber: 106,
+      nextLogId: 2,
+    };
+  }
+
+  public subscribe(listener: Listener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  public getState(): Readonly<GameState> {
+    return this.state;
+  }
+
+  public snapshot(): GameState {
+    this.state.rngState = this.rng.getState();
+    return structuredClone(this.state);
+  }
+
+  public replaceState(nextState: GameState): void {
+    if (nextState.version !== 1) {
+      throw new Error(`Unsupported save version: ${String(nextState.version)}`);
+    }
+    this.state = structuredClone(nextState);
+    this.rng.setState(this.state.rngState);
+    this.emit({ type: 'state-changed', state: this.state });
+  }
+
+  public tick(gameMinutes = 1): void {
+    if (this.state.dayEnded || this.state.pendingDecision) return;
+    const wholeMinutes = Math.max(1, Math.floor(gameMinutes));
+    for (let index = 0; index < wholeMinutes; index += 1) {
+      if (this.state.minute >= SHIFT_END) {
+        this.endDay();
+        break;
+      }
+      this.state.minute += 1;
+      this.progressTechnicians();
+      this.checkSlaBreaches();
+      this.runScriptedEvents();
+      this.maybeGenerateTicket();
+      this.recalculateTeamMetrics();
+      if (this.state.pendingDecision) break;
+    }
+    this.state.rngState = this.rng.getState();
+    this.emit({ type: 'state-changed', state: this.state });
+  }
+
+  public assignTicket(ticketId: string, technicianId: string | null): void {
+    const ticket = this.requireOpenTicket(ticketId);
+    if (ticket.assignedTo) {
+      const previous = this.state.technicians.find((tech) => tech.id === ticket.assignedTo);
+      if (previous?.currentTicketId === ticket.id) previous.currentTicketId = null;
+    }
+
+    if (technicianId === null) {
+      ticket.assignedTo = null;
+      ticket.status = 'unassigned';
+      this.addLog('info', `${ticket.id} returned to the queue. It has promised not to take this personally.`);
+      this.changed();
+      return;
+    }
+
+    const technician = this.requireTechnician(technicianId);
+    if (technician.currentTicketId && technician.currentTicketId !== ticket.id) {
+      const previousTicket = this.state.tickets.find((item) => item.id === technician.currentTicketId);
+      if (previousTicket && previousTicket.status === 'active') {
+        previousTicket.assignedTo = null;
+        previousTicket.status = 'unassigned';
+      }
+    }
+
+    technician.currentTicketId = ticket.id;
+    ticket.assignedTo = technician.id;
+    ticket.status = 'active';
+    const fit = technician.skills[ticket.category] - ticket.requiredSkill;
+    const fitText = fit >= 2 ? 'strong fit' : fit >= 0 ? 'adequate fit' : 'skill gap';
+    this.addLog('info', `${ticket.id} assigned to ${technician.name} (${fitText}).`);
+    this.changed();
+  }
+
+  public chooseDecision(optionId: string): void {
+    const decision = this.state.pendingDecision;
+    if (!decision) throw new Error('No decision is pending.');
+
+    if (decision.id === 'shadow-it') this.resolveShadowIt(optionId);
+    else if (decision.id === 'vendor-outage') this.resolveVendorOutage(optionId);
+    else throw new Error(`Unknown decision: ${decision.id}`);
+
+    this.state.pendingDecision = null;
+    this.recalculateTeamMetrics();
+    this.changed();
+  }
+
+  public interact(targetId: string): string {
+    switch (targetId) {
+      case 'printer': return this.interactWithPrinter();
+      case 'server-rack': return this.interactWithServerRack();
+      case 'coffee': return this.interactWithCoffee();
+      case 'executive': return this.interactWithExecutive();
+      default: {
+        const technician = this.state.technicians.find((item) => item.id === targetId);
+        if (technician) return this.technicianDialogue(technician);
+        return 'There is nothing useful to do here. A rare feature in this office.';
+      }
+    }
+  }
+
+  public trainTechnician(technicianId: string): void {
+    const technician = this.requireTechnician(technicianId);
+    const cost = 600;
+    if (this.state.metrics.budget < cost) {
+      this.toast('warning', 'Training rejected: the budget has encountered a boundary condition.');
+      return;
+    }
+    this.state.metrics.budget -= cost;
+    technician.training = clamp(technician.training + 25);
