@@ -58,8 +58,9 @@ export class GameInterface {
 
   public setInteractionLabel(label: string | null): void {
     const prompt = this.requireElement<HTMLElement>('interaction-prompt');
+    const key = document.body.classList.contains('mobile-mode') ? 'USE' : 'E';
     prompt.hidden = label === null;
-    prompt.innerHTML = label ? `<kbd>E</kbd><span>${escapeHtml(label)}</span>` : '';
+    prompt.innerHTML = label ? `<kbd>${key}</kbd><span>${escapeHtml(label)}</span>` : '';
   }
 
   public showDialogue(message: string): void {
@@ -100,6 +101,12 @@ export class GameInterface {
 
   public isPanelVisible(): boolean {
     return this.panelVisible;
+  }
+
+  public setSimulationSpeed(speed: number): void {
+    this.currentSpeed = speed;
+    this.renderTopbar();
+    if (this.activeTab === 'tickets' || this.activeTab === 'operations') this.renderPanel();
   }
 
   public togglePanel(): void {
