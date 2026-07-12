@@ -1,0 +1,81 @@
+      if (technician.traits.includes('security-first') && ticket.securityRisk > 10) return `${technician.name}: “${ticket.id} is contained. Please do not approve any shortcuts while I’m looking away.”`;
+      return `${technician.name}: “Working ${ticket.id}. Roughly ${Math.max(0, progress)}% complete.”`;
+    }
+    if (technician.traits.includes('burned-out')) return `${technician.name}: “I’m available. Please interpret that as a scheduling fact, not an invitation.”`;
+    if (technician.traits.includes('junior')) return `${technician.name}: “I’m free. I also found three ways to fix DNS, and only one of them deletes DNS.”`;
+    if (technician.traits.includes('friendly')) return `${technician.name}: “Queue me something. Preferably hardware. Preferably not the printer. We both know it will be the printer.”`;
+    return `${technician.name} is available.`;
+  }
+
+  private recalculateTeamMetrics(): void {
+    const averageMorale = this.state.technicians.reduce((sum, tech) => sum + tech.morale, 0) / this.state.technicians.length;
+    const averageStress = this.state.technicians.reduce((sum, tech) => sum + tech.stress, 0) / this.state.technicians.length;
+    this.state.metrics.morale = clamp(averageMorale - Math.max(0, averageStress - 65) * 0.25);
+    const eligible = this.state.tickets.filter((ticket) => ticket.status !== 'failed');
+    const breached = eligible.filter((ticket) => ticket.slaBreached).length;
+    this.state.metrics.sla = eligible.length === 0 ? 100 : clamp(100 - breached / eligible.length * 100);
+  }
+
+  private buildSummary(): DaySummary {
+    const resolved = this.state.tickets.filter((ticket) => ticket.status === 'resolved').length;
+    const breached = this.state.tickets.filter((ticket) => ticket.slaBreached).length;
+    const backlog = this.state.tickets.filter((ticket) => ticket.status !== 'resolved' && ticket.status !== 'failed').length;
+    const metricAverage = (
+      this.state.metrics.uptime + this.state.metrics.sla + this.state.metrics.security + this.state.metrics.morale +
+      this.state.metrics.executiveConfidence + this.state.metrics.userSatisfaction + this.state.metrics.reputation
+    ) / 7;
+    const score = Math.round(clamp(metricAverage + resolved * 2.5 - breached * 4 - backlog * 1.5 - this.state.metrics.technicalDebt * 0.08));
+    const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 68 ? 'C' : score >= 55 ? 'D' : 'F';
+    const headline = grade === 'A'
+      ? 'The company remains operational and briefly suspects IT may be important.'
+      : grade === 'B'
+        ? 'A solid day. Several preventable problems were prevented, confusing everyone.'
+        : grade === 'C'
+          ? 'The systems survived. So did most professional relationships.'
+          : grade === 'D'
+            ? 'Operations continue in the legal sense of the word.'
+            : 'The postmortem has already been scheduled as a recurring meeting.';
+    return { score, grade, resolved, breached, backlog, headline };
+  }
+
+  private requireOpenTicket(ticketId: string): Ticket {
+    const ticket = this.state.tickets.find((item) => item.id === ticketId);
+    if (!ticket) throw new Error(`Unknown ticket: ${ticketId}`);
+    if (ticket.status === 'resolved' || ticket.status === 'failed') throw new Error(`Ticket ${ticketId} is closed.`);
+    return ticket;
+  }
+
+  private requireTechnician(technicianId: string): Technician {
+    const technician = this.state.technicians.find((item) => item.id === technicianId);
+    if (!technician) throw new Error(`Unknown technician: ${technicianId}`);
+    return technician;
+  }
+
+  private addLog(tone: EventLogEntry['tone'], message: string): void {
+    this.state.log.unshift({ id: this.state.nextLogId, minute: this.state.minute, tone, message });
+    this.state.nextLogId += 1;
+    this.state.log = this.state.log.slice(0, 40);
+  }
+
+  private toast(tone: EventLogEntry['tone'], message: string): void {
+    this.emit({ type: 'toast', tone, message });
+  }
+
+  private changed(): void {
+    this.state.rngState = this.rng.getState();
+    this.recalculateTeamMetrics();
+    this.emit({ type: 'state-changed', state: this.state });
+  }
+
+  private emit(event: SimulationEvent): void {
+    for (const listener of this.listeners) listener(event);
+  }
+}
+
+export const formatTime = (minute: number): string => {
+  const hours24 = Math.floor(minute / 60) % 24;
+  const minutes = minute % 60;
+  const suffix = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${suffix}`;
+};
