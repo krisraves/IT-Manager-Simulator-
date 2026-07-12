@@ -1,0 +1,84 @@
+      this.state.metrics.technicalDebt = clamp(this.state.metrics.technicalDebt + 8);
+      this.addLog('bad', 'Shadow IT ignored. The launch remains unblocked, as does nearly everything else.');
+    } else throw new Error(`Unknown shadow IT option: ${optionId}`);
+  }
+
+  private resolveVendorOutage(optionId: string): void {
+    const monitoringBonus = this.state.scriptedFlags['upgrade-monitoring'] ? 2 : 0;
+    if (optionId === 'failover') {
+      if (this.state.metrics.budget < 1_800) throw new Error('Failover requires $1,800. The budget cannot authenticate.');
+      this.state.metrics.budget -= 1_800;
+      this.state.metrics.uptime = clamp(this.state.metrics.uptime - Math.max(0.4, 1.4 - monitoringBonus), 0, 100);
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence + 4);
+      this.addLog('good', 'Failover enabled. It was expensive, but unlike the status page, it was also functional.');
+    } else if (optionId === 'manual') {
+      this.state.metrics.uptime = clamp(this.state.metrics.uptime - Math.max(2, 4 - monitoringBonus), 0, 100);
+      this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction - 5);
+      for (const technician of this.state.technicians) technician.stress = clamp(technician.stress + 10);
+      this.addLog('warning', 'Manual access process started. Continuity is preserved through the traditional enterprise technology known as human suffering.');
+    } else if (optionId === 'wait') {
+      this.state.metrics.uptime = clamp(this.state.metrics.uptime - Math.max(6, 10 - monitoringBonus), 0, 100);
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence - 12);
+      this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction - 10);
+      this.addLog('bad', 'The department waited for vendor recovery. The vendor recovered. Your reputation has entered maintenance mode.');
+    } else throw new Error(`Unknown vendor outage option: ${optionId}`);
+  }
+
+  private interactWithPrinter(): string {
+    const ticket = this.state.tickets.find((item) => item.title.toLowerCase().includes('print') && item.status !== 'resolved');
+    if (!ticket) return 'The printer is idle. This is suspicious and should probably be documented.';
+    if (!this.state.scriptedFlags.managerPrinterAssist) {
+      this.state.scriptedFlags.managerPrinterAssist = true;
+      ticket.remaining = Math.max(4, ticket.remaining - 18);
+      this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence + 2);
+      this.addLog('info', `You inspected ${ticket.id} in person and removed eighteen minutes of ambiguity.`);
+      this.changed();
+      return 'You reseated the paper tray and cleared a job owned by “Administrator.” Progress occurred despite the interface.';
+    }
+    return 'You have already provided executive-grade printer support today. Preserve what remains of your authority.';
+  }
+
+  private interactWithServerRack(): string {
+    const certificate = this.state.tickets.find((item) => item.title.includes('certificate') && item.status !== 'resolved');
+    if (certificate && !this.state.scriptedFlags.managerServerInspect) {
+      this.state.scriptedFlags.managerServerInspect = true;
+      certificate.remaining = Math.max(8, certificate.remaining - 14);
+      this.state.metrics.security = clamp(this.state.metrics.security + 2);
+      this.addLog('info', 'Server inspection confirmed the certificate warning was not, in fact, decorative.');
+      this.changed();
+      return 'The monitoring panel shows a certificate warning in red. Red remains the industry-standard color for “someone hoped this would become another team’s problem.”';
+    }
+    return `Server room status: uptime ${this.state.metrics.uptime.toFixed(1)}%, security posture ${Math.round(this.state.metrics.security)}.`;
+  }
+
+  private interactWithCoffee(): string {
+    if (this.state.scriptedFlags.coffeeRun) return 'The coffee machine reports READY while producing nothing. It has moved into management.';
+    if (this.state.metrics.budget < 80) return 'The coffee budget is empty. Morale will now be handled through email.';
+    this.state.scriptedFlags.coffeeRun = true;
+    this.state.metrics.budget -= 80;
+    for (const technician of this.state.technicians) {
+      technician.morale = clamp(technician.morale + 4);
+      technician.stress = clamp(technician.stress - 2);
+    }
+    this.addLog('good', 'Team coffee run completed. Morale improved through a fully supported chemical dependency.');
+    this.changed();
+    return 'Coffee distributed. The team briefly remembers why civilization built offices.';
+  }
+
+  private interactWithExecutive(): string {
+    if (this.state.scriptedFlags.executiveBriefing) return '“Any update?” The executive asks again, demonstrating a sophisticated polling architecture.';
+    this.state.scriptedFlags.executiveBriefing = true;
+    this.state.metrics.executiveConfidence = clamp(this.state.metrics.executiveConfidence + 4);
+    for (const technician of this.state.technicians) technician.morale = clamp(technician.morale - 1);
+    this.addLog('info', 'You briefed the executive. Confidence increased; the team correctly inferred that priorities are about to move.');
+    this.changed();
+    return 'You give a concise status update using numbers, risks, and no visible panic. The executive calls this “alignment.”';
+  }
+
+  private technicianDialogue(technician: Technician): string {
+    const ticket = technician.currentTicketId
+      ? this.state.tickets.find((item) => item.id === technician.currentTicketId)
+      : undefined;
+    if (ticket) {
+      const progress = Math.round((1 - ticket.remaining / (ticket.effort + ticket.hiddenComplexity)) * 100);
+      if (technician.stress > 70) return `${technician.name}: “I’m on ${ticket.id}. It is ${Math.max(0, progress)}% done, assuming nobody schedules another status meeting.”`;
