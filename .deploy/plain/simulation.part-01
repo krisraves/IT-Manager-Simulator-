@@ -1,0 +1,119 @@
+    technician.morale = clamp(technician.morale + 5);
+    technician.fatigue = clamp(technician.fatigue + 4);
+    this.addLog('good', `${technician.name} received focused training. Finance has recorded this as “miscellaneous optimism.”`);
+    this.changed();
+  }
+
+  public purchaseUpgrade(upgradeId: 'spares' | 'monitoring'): void {
+    const alreadyPurchased = this.state.scriptedFlags[`upgrade-${upgradeId}`];
+    if (alreadyPurchased) {
+      this.toast('info', 'That upgrade is already purchased. Buying it twice is procurement, not redundancy.');
+      return;
+    }
+    const cost = upgradeId === 'spares' ? 1_200 : 950;
+    if (this.state.metrics.budget < cost) {
+      this.toast('warning', 'Purchase rejected: insufficient budget. The spreadsheet has spoken.');
+      return;
+    }
+    this.state.metrics.budget -= cost;
+    this.state.scriptedFlags[`upgrade-${upgradeId}`] = true;
+    if (upgradeId === 'spares') {
+      this.state.metrics.technicalDebt = clamp(this.state.metrics.technicalDebt - 3);
+      for (const ticket of this.state.tickets) {
+        if (ticket.category === 'hardware' && ticket.status !== 'resolved') ticket.remaining = Math.max(4, ticket.remaining - 12);
+      }
+      this.addLog('good', 'Spare hardware stocked. Future laptop failures can now be addressed with hardware instead of motivational language.');
+    } else {
+      this.state.metrics.security = clamp(this.state.metrics.security + 6);
+      this.state.metrics.technicalDebt = clamp(this.state.metrics.technicalDebt - 5);
+      this.addLog('good', 'Monitoring upgrade deployed. The systems can now disappoint you with substantially better telemetry.');
+    }
+    this.changed();
+  }
+
+  public endDay(): DaySummary {
+    if (this.state.dayEnded) return this.buildSummary();
+    this.state.dayEnded = true;
+    this.state.minute = Math.max(this.state.minute, SHIFT_END);
+    const summary = this.buildSummary();
+    this.state.score = summary.score;
+    this.addLog('info', `Day ended with grade ${summary.grade}. ${summary.headline}`);
+    this.emit({ type: 'day-ended', summary });
+    this.emit({ type: 'state-changed', state: this.state });
+    return summary;
+  }
+
+  private static createTicketId(state: GameState): string {
+    const id = `T-${state.nextTicketNumber}`;
+    state.nextTicketNumber += 1;
+    return id;
+  }
+
+  private progressTechnicians(): void {
+    for (const technician of this.state.technicians) {
+      const ticket = technician.currentTicketId
+        ? this.state.tickets.find((item) => item.id === technician.currentTicketId)
+        : undefined;
+
+      if (!ticket || ticket.status !== 'active') {
+        technician.currentTicketId = null;
+        technician.stress = clamp(technician.stress - 0.018);
+        technician.fatigue = clamp(technician.fatigue + 0.004);
+        continue;
+      }
+
+      const skill = technician.skills[ticket.category];
+      const skillFactor = 0.72 + skill * 0.065;
+      const speedFactor = 0.62 + technician.speed * 0.055;
+      const moraleFactor = 0.72 + technician.morale / 360;
+      const stressPenalty = 1 - Math.max(0, technician.stress - 55) / 190;
+      const fatiguePenalty = 1 - technician.fatigue / 250;
+      const trainingFactor = 1 + technician.training / 500;
+      const progress = Math.max(0.08, skillFactor * speedFactor * moraleFactor * stressPenalty * fatiguePenalty * trainingFactor);
+
+      ticket.remaining -= progress;
+      const gap = Math.max(0, ticket.requiredSkill - skill);
+      technician.stress = clamp(technician.stress + 0.016 * ticket.severity + gap * 0.012);
+      technician.fatigue = clamp(technician.fatigue + 0.011);
+
+      if (ticket.remaining <= 0) this.attemptResolution(technician, ticket, gap);
+    }
+  }
+
+  private attemptResolution(technician: Technician, ticket: Ticket, skillGap: number): void {
+    const overload = Math.max(0, technician.stress - 65) / 100;
+    const errorChance = clamp(0.14 + skillGap * 0.055 + overload - technician.accuracy * 0.012, 0.02, 0.48);
+    if (this.rng.next() < errorChance && ticket.escalationLevel < 2) {
+      ticket.remaining = Math.max(12, ticket.effort * 0.32);
+      ticket.escalationLevel += 1;
+      technician.mistakes += 1;
+      technician.stress = clamp(technician.stress + 8);
+      this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction - 5);
+      this.state.metrics.reputation = clamp(this.state.metrics.reputation - 2);
+      this.addLog('bad', `${technician.name}'s fix for ${ticket.id} did not survive contact with reality. The ticket reopened.`);
+      this.toast('bad', `${ticket.id} reopened after a failed fix.`);
+      return;
+    }
+
+    ticket.status = 'resolved';
+    ticket.remaining = 0;
+    ticket.resolutionNote = `${technician.name} resolved it at ${formatTime(this.state.minute)}.`;
+    technician.currentTicketId = null;
+    technician.resolvedToday += 1;
+    technician.morale = clamp(technician.morale + (ticket.slaBreached ? 0.5 : 2));
+    technician.stress = clamp(technician.stress - 4);
+    this.state.metrics.userSatisfaction = clamp(this.state.metrics.userSatisfaction + (ticket.slaBreached ? 1 : 4));
+    this.state.metrics.reputation = clamp(this.state.metrics.reputation + (ticket.severity <= 2 ? 3 : 1));
+    this.state.metrics.security = clamp(this.state.metrics.security + ticket.securityRisk * 0.12);
+    this.addLog('good', `${ticket.id} resolved by ${technician.name}: ${ticket.title}.`);
+    this.toast('good', `${ticket.id} resolved.`);
+  }
+
+  private checkSlaBreaches(): void {
+    for (const ticket of this.state.tickets) {
+      if (ticket.status === 'resolved' || ticket.status === 'failed' || ticket.slaBreached) continue;
+      if (this.state.minute > ticket.slaDueMinute) {
+        ticket.slaBreached = true;
+        ticket.escalationLevel += 1;
+        ticket.remaining += 8 + ticket.businessImpact * 0.08;
+        this.state.metrics.sla = clamp(this.state.metrics.sla - 7);
