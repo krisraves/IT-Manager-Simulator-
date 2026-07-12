@@ -1,4 +1,5 @@
 name: Deploy GitHub Pages
+# Deployment trigger after Pages enablement.
 
 on:
   push:
