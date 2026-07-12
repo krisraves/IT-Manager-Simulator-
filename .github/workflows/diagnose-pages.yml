@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  pages: read
+  pages: write
   actions: read
 
 jobs:
@@ -33,18 +33,38 @@ jobs:
       - name: Build game
         run: npm run build
 
-      - name: Query Pages API
+      - name: Query or enable Pages
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          status=$(curl --silent --show-error --output pages.json --write-out '%{http_code}' \
+          get_status=$(curl --silent --show-error --output pages-before.json --write-out '%{http_code}' \
             --header 'Accept: application/vnd.github+json' \
             --header "Authorization: Bearer ${GH_TOKEN}" \
             --header 'X-GitHub-Api-Version: 2022-11-28' \
             "https://api.github.com/repos/${REPOSITORY}/pages")
-          printf 'pages_api_status=%s\n' "${status}" > diagnostic-status.txt
-          test "${status}" = "200" || test "${status}" = "404"
+          printf 'pages_api_before=%s\n' "${get_status}" > diagnostic-status.txt
+
+          if [ "${get_status}" = "404" ]; then
+            enable_status=$(curl --silent --show-error --request POST --output pages-enable.json --write-out '%{http_code}' \
+              --header 'Accept: application/vnd.github+json' \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              --header 'Content-Type: application/json' \
+              --data '{"build_type":"workflow"}' \
+              "https://api.github.com/repos/${REPOSITORY}/pages")
+            printf 'pages_enable_status=%s\n' "${enable_status}" >> diagnostic-status.txt
+          else
+            cp pages-before.json pages-enable.json
+            printf 'pages_enable_status=not-needed\n' >> diagnostic-status.txt
+          fi
+
+          final_status=$(curl --silent --show-error --output pages-after.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPOSITORY}/pages")
+          printf 'pages_api_after=%s\n' "${final_status}" >> diagnostic-status.txt
 
       - name: Check public site
         run: |
@@ -57,6 +77,8 @@ jobs:
         with:
           name: pages-diagnostic
           path: |
-            pages.json
+            pages-before.json
+            pages-enable.json
+            pages-after.json
             diagnostic-status.txt
           if-no-files-found: error
