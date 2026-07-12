@@ -13,9 +13,41 @@
 
   private readonly onPanelClick = (event: Event): void => {
     const target = event.target as HTMLElement;
+
+    const assignmentChoice = target.closest<HTMLButtonElement>('[data-assignment-choice]');
+    if (assignmentChoice) {
+      const ticketId = assignmentChoice.dataset.ticketId;
+      const technicianId = assignmentChoice.dataset.technicianId ?? '';
+      if (!ticketId) return;
+      this.openAssignmentTicketId = null;
+      this.callbacks.onAssign(ticketId, technicianId || null);
+      return;
+    }
+
+    const assignmentToggle = target.closest<HTMLButtonElement>('[data-assignment-toggle]');
+    if (assignmentToggle?.dataset.assignmentToggle) {
+      const ticketId = assignmentToggle.dataset.assignmentToggle;
+      this.openAssignmentTicketId = this.openAssignmentTicketId === ticketId ? null : ticketId;
+      this.renderPanel();
+      if (this.openAssignmentTicketId) {
+        window.requestAnimationFrame(() => {
+          const list = document.getElementById(`assignment-list-${ticketId}`);
+          const selected = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+          const first = list?.querySelector<HTMLElement>('[data-assignment-choice]');
+          (selected ?? first)?.focus();
+        });
+      }
+      return;
+    }
+
+    if (this.openAssignmentTicketId && !target.closest('.assignment-picker')) {
+      this.openAssignmentTicketId = null;
+    }
+
     const ticketButton = target.closest<HTMLButtonElement>('[data-ticket-id]');
     if (ticketButton?.dataset.ticketId) {
       this.selectedTicketId = ticketButton.dataset.ticketId;
+      this.openAssignmentTicketId = null;
       this.renderPanel();
       return;
     }
@@ -44,13 +76,6 @@
     if (action === 'save') this.callbacks.onSave();
     else if (action === 'load') this.callbacks.onLoad();
     else if (action === 'end-day') this.callbacks.onEndDay();
-  };
-
-  private readonly onPanelChange = (event: Event): void => {
-    const select = (event.target as HTMLElement).closest<HTMLSelectElement>('[data-assign-ticket]');
-    const ticketId = select?.dataset.assignTicket;
-    if (!select || !ticketId) return;
-    this.callbacks.onAssign(ticketId, select.value || null);
   };
 
   private skillFit(technician: Technician, ticket: Ticket): string {
