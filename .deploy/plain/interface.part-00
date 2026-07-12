@@ -32,6 +32,7 @@ export class GameInterface {
   private readonly callbacks: UiCallbacks;
   private state: Readonly<GameState>;
   private panelVisible = true;
+  private panelInitialized = false;
   private activeTab: PanelTab = 'tickets';
   private selectedTicketId: string | null = null;
   private openAssignmentTicketId: string | null = null;
@@ -41,8 +42,6 @@ export class GameInterface {
   private panelScrollTop = 0;
   private ticketListScrollTop = 0;
   private assignmentListScrollTop = 0;
-  private panelPointerActive = false;
-  private panelScrollTimer: number | null = null;
   private pendingPanelRender = false;
   private restoringScroll = false;
 
@@ -63,8 +62,17 @@ export class GameInterface {
       this.openAssignmentTicketId = null;
     }
     this.renderTopbar();
-    if (this.isPanelInteractionBusy()) this.pendingPanelRender = true;
-    else this.renderPanel(true);
+
+    if (!this.panelInitialized) {
+      this.renderPanel(false);
+    } else if (this.panelVisible) {
+      // Never replace the DOM beneath an actively visible mobile console.
+      // Chrome can otherwise reset momentum scrolling even when scrollTop is restored.
+      this.pendingPanelRender = true;
+    } else {
+      this.renderPanel(true);
+    }
+
     this.renderDecision();
   }
 
@@ -115,6 +123,10 @@ export class GameInterface {
     return this.panelVisible;
   }
 
+  public refreshPanel(): void {
+    this.renderPanel(true);
+  }
+
   public setSimulationSpeed(speed: number): void {
     this.currentSpeed = speed;
     this.renderTopbar();
@@ -128,6 +140,13 @@ export class GameInterface {
   public setPanelVisible(visible: boolean): void {
     this.panelVisible = visible;
     if (!visible) this.openAssignmentTicketId = null;
+
+    if (visible && (this.pendingPanelRender || !this.panelInitialized)) {
+      this.renderPanel(true);
+    } else if (!visible && this.pendingPanelRender) {
+      this.renderPanel(true);
+    }
+
     const panel = this.requireElement<HTMLElement>('management-panel');
     panel.classList.toggle('hidden-panel', !visible);
     const button = this.requireElement<HTMLButtonElement>('panel-toggle');
