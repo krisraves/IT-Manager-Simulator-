@@ -1,0 +1,66 @@
+        <h2 id="decision-title">${escapeHtml(decision.title)}</h2>
+        <p>${escapeHtml(decision.body)}</p>
+        <div class="decision-options">${decision.options.map((option) => `<button data-decision="${option.id}"><strong>${escapeHtml(option.label)}</strong><span>${escapeHtml(option.detail)}</span></button>`).join('')}</div>
+      </section>`;
+    modal.hidden = false;
+    modal.querySelectorAll<HTMLButtonElement>('[data-decision]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const option = button.dataset.decision;
+        if (option) this.callbacks.onDecision(option);
+      });
+    });
+  }
+
+  private readonly onPanelClick = (event: Event): void => {
+    const target = event.target as HTMLElement;
+    const ticketButton = target.closest<HTMLButtonElement>('[data-ticket-id]');
+    if (ticketButton?.dataset.ticketId) {
+      this.selectedTicketId = ticketButton.dataset.ticketId;
+      this.renderPanel();
+      return;
+    }
+    const trainButton = target.closest<HTMLButtonElement>('[data-train]');
+    if (trainButton?.dataset.train) {
+      this.callbacks.onTrain(trainButton.dataset.train);
+      return;
+    }
+    const upgradeButton = target.closest<HTMLButtonElement>('[data-upgrade]');
+    const upgrade = upgradeButton?.dataset.upgrade;
+    if (upgrade === 'spares' || upgrade === 'monitoring') {
+      this.callbacks.onPurchase(upgrade);
+      return;
+    }
+    const speedButton = target.closest<HTMLButtonElement>('[data-speed]');
+    if (speedButton?.dataset.speed !== undefined) {
+      const speed = Number(speedButton.dataset.speed);
+      if (Number.isFinite(speed)) {
+        this.currentSpeed = speed;
+        this.callbacks.onSpeedChange(speed);
+        this.renderPanel();
+      }
+      return;
+    }
+    const action = target.closest<HTMLButtonElement>('[data-action]')?.dataset.action;
+    if (action === 'save') this.callbacks.onSave();
+    else if (action === 'load') this.callbacks.onLoad();
+    else if (action === 'end-day') this.callbacks.onEndDay();
+  };
+
+  private readonly onPanelChange = (event: Event): void => {
+    const select = (event.target as HTMLElement).closest<HTMLSelectElement>('[data-assign-ticket]');
+    const ticketId = select?.dataset.assignTicket;
+    if (!select || !ticketId) return;
+    this.callbacks.onAssign(ticketId, select.value || null);
+  };
+
+  private skillFit(technician: Technician, ticket: Ticket): string {
+    const fit = technician.skills[ticket.category] - ticket.requiredSkill;
+    return fit >= 2 ? 'strong' : fit >= 0 ? 'adequate' : 'weak';
+  }
+
+  private requireElement<T extends HTMLElement>(id: string): T {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`Missing UI element: ${id}`);
+    return element as T;
+  }
+}
