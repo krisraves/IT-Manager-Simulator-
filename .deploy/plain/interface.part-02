@@ -1,22 +1,3 @@
-      ...this.state.technicians.map((technician) => `<option value="${technician.id}" ${ticket.assignedTo === technician.id ? 'selected' : ''}>${escapeHtml(technician.name)} — fit ${this.skillFit(technician, ticket)}</option>`),
-    ].join('');
-    return `
-      <div class="detail-header"><span class="priority-badge p${ticket.severity}">P${ticket.severity}</span><span>${ticket.id}</span></div>
-      <h3>${escapeHtml(ticket.title)}</h3>
-      <p>${escapeHtml(ticket.requester)} · ${escapeHtml(ticket.category)} · impact ${ticket.businessImpact}</p>
-      <div class="progress-row"><span>Work progress</span><strong>${Math.round(progress)}%</strong></div>
-      <div class="progress-track"><i style="width:${progress}%"></i></div>
-      <dl class="detail-grid">
-        <div><dt>Required skill</dt><dd>${ticket.requiredSkill}/10</dd></div>
-        <div><dt>Security risk</dt><dd>${ticket.securityRisk}</dd></div>
-        <div><dt>SLA due</dt><dd>${formatTime(ticket.slaDueMinute)}</dd></div>
-        <div><dt>Escalations</dt><dd>${ticket.escalationLevel}</dd></div>
-      </dl>
-      <label class="field-label" for="assignment-select">Assign technician</label>
-      <select id="assignment-select" data-assign-ticket="${ticket.id}">${options}</select>
-      <p class="hint">Assigning a busy technician returns their current ticket to the queue. Parallel work remains unavailable because people are not Kubernetes.</p>`;
-  }
-
   private teamPanel(): string {
     const cards = this.state.technicians.map((technician) => {
       const ticket = this.state.tickets.find((item) => item.id === technician.currentTicketId);
