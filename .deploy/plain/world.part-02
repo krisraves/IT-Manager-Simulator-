@@ -1,0 +1,149 @@
+    const torso = this.localBox(group, [0.62, 0.94, 0.38], [0, 1.16, 0], technician.color, technician.id, `Talk to ${technician.name}`);
+    this.localSphere(group, 0.28, [0, 1.85, 0], 0xd8a57c, technician.id, `Talk to ${technician.name}`);
+    this.localBox(group, [0.16, 0.72, 0.16], [-0.18, 0.45, 0], 0x26313d, technician.id, `Talk to ${technician.name}`);
+    this.localBox(group, [0.16, 0.72, 0.16], [0.18, 0.45, 0], 0x26313d, technician.id, `Talk to ${technician.name}`);
+    const status = this.localSphere(group, 0.075, [0.38, 1.55, 0.02], 0x6ee7a8, technician.id, `Talk to ${technician.name}`);
+    status.name = 'status-light';
+    if (status.material instanceof THREE.MeshStandardMaterial) status.material.emissive.setHex(0x0b3d25);
+    this.scene.add(group);
+    this.technicianGroups.set(technician.id, group);
+    this.label(`${technician.name}\n${technician.role}`, [position[0], 2.52, position[2]], 0xffffff, 1.28);
+    this.addCollision(torso, 0.12);
+  }
+
+  private monitor(position: readonly [number, number, number], rotationY: number): void {
+    const group = new THREE.Group();
+    group.position.set(...position);
+    group.rotation.y = rotationY;
+    this.localBox(group, [1.2, 0.72, 0.08], [0, 0, 0], 0x1d2832);
+    const screen = this.localBox(group, [1.03, 0.56, 0.03], [0, 0, 0.055], 0x5eb1d4);
+    if (screen.material instanceof THREE.MeshStandardMaterial) {
+      screen.material.emissive.setHex(0x163a4d);
+      screen.material.emissiveIntensity = 0.7;
+    }
+    this.localBox(group, [0.08, 0.38, 0.08], [0, -0.54, 0], 0x303944);
+    this.localBox(group, [0.55, 0.07, 0.32], [0, -0.73, 0.08], 0x303944);
+    this.scene.add(group);
+  }
+
+  private keyboard(position: readonly [number, number, number]): void {
+    const keyboard = this.box('keyboard', [0.9, 0.055, 0.35], position, 0x2a3138);
+    keyboard.rotation.x = -0.08;
+  }
+
+  private chair(position: readonly [number, number, number]): void {
+    this.box('chair-seat', [0.72, 0.16, 0.72], position, 0x36404b);
+    this.box('chair-back', [0.76, 0.9, 0.15], [position[0], position[1] + 0.52, position[2] + 0.34], 0x36404b);
+  }
+
+  private wall(size: readonly [number, number, number], position: readonly [number, number, number], color: number): void {
+    const wall = this.box('wall', size, position, color);
+    this.addCollision(wall, 0);
+  }
+
+  private box(
+    name: string,
+    size: readonly [number, number, number],
+    position: readonly [number, number, number],
+    color: number,
+    castShadow = true,
+    interactionId?: string,
+    interactionLabel?: string,
+  ): InteractiveMesh {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(...size),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.78, metalness: 0.04 }),
+    ) as InteractiveMesh;
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.castShadow = castShadow;
+    mesh.receiveShadow = true;
+    if (interactionId && interactionLabel) this.makeInteractive(mesh, interactionId, interactionLabel);
+    this.scene.add(mesh);
+    return mesh;
+  }
+
+  private sphere(
+    name: string,
+    radius: number,
+    position: readonly [number, number, number],
+    color: number,
+    castShadow = true,
+    interactionId?: string,
+    interactionLabel?: string,
+  ): InteractiveMesh {
+    const mesh = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(radius, 1),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.86 }),
+    ) as InteractiveMesh;
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.castShadow = castShadow;
+    if (interactionId && interactionLabel) this.makeInteractive(mesh, interactionId, interactionLabel);
+    this.scene.add(mesh);
+    return mesh;
+  }
+
+  private localBox(
+    parent: THREE.Object3D,
+    size: readonly [number, number, number],
+    position: readonly [number, number, number],
+    color: number,
+    interactionId?: string,
+    interactionLabel?: string,
+  ): InteractiveMesh {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(...size),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.76 }),
+    ) as InteractiveMesh;
+    mesh.position.set(...position);
+    mesh.castShadow = true;
+    if (interactionId && interactionLabel) this.makeInteractive(mesh, interactionId, interactionLabel);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  private localSphere(
+    parent: THREE.Object3D,
+    radius: number,
+    position: readonly [number, number, number],
+    color: number,
+    interactionId?: string,
+    interactionLabel?: string,
+  ): InteractiveMesh {
+    const mesh = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(radius, 1),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.84 }),
+    ) as InteractiveMesh;
+    mesh.position.set(...position);
+    mesh.castShadow = true;
+    if (interactionId && interactionLabel) this.makeInteractive(mesh, interactionId, interactionLabel);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  private makeInteractive(mesh: InteractiveMesh, id: string, label: string): void {
+    mesh.userData.interactionId = id;
+    mesh.userData.interactionLabel = label;
+    this.interactiveMeshes.push(mesh);
+  }
+
+  private label(text: string, position: readonly [number, number, number], color: number, scale: number): void {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 192;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.font = '700 42px system-ui, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.lineWidth = 10;
+    context.strokeStyle = 'rgba(10, 17, 26, 0.88)';
+    context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+      const y = canvas.height / 2 + (index - (lines.length - 1) / 2) * 50;
+      context.strokeText(line, canvas.width / 2, y);
+      context.fillText(line, canvas.width / 2, y);
+    });
