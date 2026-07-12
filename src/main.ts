@@ -1,7 +1,9 @@
 import './styles.css';
+import './mobile.css';
 import { SaveStore } from './core/save';
 import { Simulation } from './core/simulation';
 import type { DaySummary, GameState } from './core/types';
+import { MobileControls } from './mobile';
 import { OfficeWorld } from './render/world';
 import { GameInterface } from './ui/interface';
 
@@ -13,6 +15,7 @@ let simulation = new Simulation();
 let speed = 1;
 let world: OfficeWorld;
 let ui: GameInterface;
+let mobileControls: MobileControls | null = null;
 let lastAutosaveMinute = simulation.getState().minute;
 
 const safely = (action: () => void): void => {
@@ -22,6 +25,12 @@ const safely = (action: () => void): void => {
     const message = error instanceof Error ? error.message : 'An unknown management failure occurred.';
     ui.showToast('bad', message);
   }
+};
+
+const performInteraction = (): void => {
+  const target = world.interact();
+  if (target) ui.showDialogue(simulation.interact(target));
+  else ui.showToast('info', 'Move closer and aim at something capable of generating a ticket.');
 };
 
 const bindSimulation = (): void => {
@@ -65,6 +74,8 @@ const summaryFromState = (state: Readonly<GameState>): DaySummary => {
 
 const handleDayEnded = (summary: DaySummary): void => {
   speed = 0;
+  ui.setSimulationSpeed(0);
+  mobileControls?.setSpeed(0);
   world.setInputEnabled(false);
   ui.showSummary(summary);
   void saveStore.save(simulation.snapshot());
@@ -84,8 +95,15 @@ ui = new GameInterface(app, simulation.getState(), {
   onLoad: () => { void loadState(); },
   onEndDay: () => safely(() => { simulation.endDay(); }),
   onNewDay: () => { window.location.reload(); },
-  onSpeedChange: (nextSpeed) => { speed = nextSpeed; },
-  onPanelVisibilityChange: (visible) => world?.setInputEnabled(!visible && !simulation.getState().pendingDecision && !simulation.getState().dayEnded),
+  onSpeedChange: (nextSpeed) => {
+    speed = nextSpeed;
+    mobileControls?.setSpeed(nextSpeed);
+  },
+  onPanelVisibilityChange: (visible) => {
+    const state = simulation.getState();
+    world?.setInputEnabled(!visible && !state.pendingDecision && !state.dayEnded);
+    mobileControls?.setPanelOpen(visible);
+  },
   onStart: () => world.requestPointerLock(),
 });
 
@@ -95,6 +113,16 @@ world = new OfficeWorld(worldHost, simulation.getState().technicians, {
   onTargetChanged: (label) => ui.setInteractionLabel(label),
 });
 world.updateState(simulation.getState());
+
+mobileControls = new MobileControls(world, ui, {
+  onInteract: performInteraction,
+  onSpeedChange: (nextSpeed) => {
+    speed = nextSpeed;
+    ui.setSimulationSpeed(nextSpeed);
+  },
+});
+mobileControls.setPanelOpen(ui.isPanelVisible());
+mobileControls.setSpeed(speed);
 bindSimulation();
 
 window.addEventListener('keydown', (event) => {
@@ -103,10 +131,7 @@ window.addEventListener('keydown', (event) => {
     ui.togglePanel();
     return;
   }
-  if (event.code === 'KeyE' && !event.repeat && world.isPointerLocked()) {
-    const target = world.interact();
-    if (target) ui.showDialogue(simulation.interact(target));
-  }
+  if (event.code === 'KeyE' && !event.repeat && world.isPointerLocked()) performInteraction();
 });
 
 window.setInterval(() => {
