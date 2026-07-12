@@ -60,8 +60,11 @@ export class MobileControls {
   public setPanelOpen(open: boolean): void {
     this.panelOpen = open;
     this.root.classList.toggle('panel-open', open);
+    document.body.classList.toggle('console-open', this.active && open);
+    document.documentElement.classList.toggle('console-open', this.active && open);
     this.consoleButton.textContent = open ? 'CLOSE' : 'CONSOLE';
     if (open) this.resetMoveControl();
+    this.updateOrientationHint();
   }
 
   public setSpeed(speed: number): void {
@@ -82,7 +85,8 @@ export class MobileControls {
     this.root.remove();
     this.modeButton.remove();
     this.orientationHint.remove();
-    document.body.classList.remove('mobile-mode');
+    document.body.classList.remove('mobile-mode', 'console-open');
+    document.documentElement.classList.remove('mobile-mode', 'console-open');
   }
 
   private buildMarkup(): void {
@@ -228,7 +232,6 @@ export class MobileControls {
     this.modeButton.dataset.mode = this.mode;
     this.updateStartInstructions();
     this.updateInteractionPrompt();
-    this.updateOrientationHint();
     this.setPanelOpen(this.ui.isPanelVisible());
   }
 
@@ -267,7 +270,7 @@ export class MobileControls {
 
   private updateOrientationHint(): void {
     const portrait = window.innerHeight > window.innerWidth;
-    this.orientationHint.hidden = !(this.active && portrait && window.innerWidth < 900);
+    this.orientationHint.hidden = !(this.active && !this.panelOpen && portrait && window.innerWidth < 900);
   }
 
   private readMode(): DisplayMode {
