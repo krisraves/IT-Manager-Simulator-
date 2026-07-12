@@ -60,6 +60,7 @@ const loadState = async (): Promise<void> => {
     return;
   }
   simulation.replaceState(state);
+  ui.refreshPanel();
   lastAutosaveMinute = state.minute;
   ui.showToast('good', 'Saved shift restored. Consequences included.');
   if (state.dayEnded && state.score !== null) ui.showSummary(summaryFromState(state));
@@ -87,7 +88,10 @@ ui = new GameInterface(app, simulation.getState(), {
   onAssign: (ticketId, technicianId) => safely(() => simulation.assignTicket(ticketId, technicianId)),
   onTrain: (technicianId) => safely(() => simulation.trainTechnician(technicianId)),
   onPurchase: (upgradeId) => safely(() => simulation.purchaseUpgrade(upgradeId)),
-  onDecision: (optionId) => safely(() => simulation.chooseDecision(optionId)),
+  onDecision: (optionId) => safely(() => {
+    simulation.chooseDecision(optionId);
+    ui.refreshPanel();
+  }),
   onSave: () => {
     void saveStore.save(simulation.snapshot()).then(
       () => ui.showToast('good', 'Shift saved.'),
