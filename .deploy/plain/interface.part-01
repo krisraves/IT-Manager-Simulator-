@@ -1,0 +1,98 @@
+        <section id="start-overlay" class="modal-layer">
+          <div class="modal-card start-card">
+            <p class="eyebrow">VERTICAL SLICE · DAY ONE</p>
+            <h1>IT Manager Simulator</h1>
+            <p>Run the department, assign the queue, inspect the office, and try to reach 5:00 PM without converting the company into a postmortem.</p>
+            <div class="controls-grid">
+              <span><kbd>WASD</kbd> Move</span>
+              <span><kbd>Mouse</kbd> Look</span>
+              <span><kbd>E</kbd> Interact</span>
+              <span><kbd>Tab</kbd> Console</span>
+              <span><kbd>Esc</kbd> Release cursor</span>
+            </div>
+            <button id="start-button" class="primary-button">Enter the office</button>
+          </div>
+        </section>
+      </main>`;
+
+    this.requireElement<HTMLButtonElement>('start-button').addEventListener('click', () => {
+      this.dismissStartOverlay();
+      this.setPanelVisible(false);
+      this.callbacks.onStart();
+    });
+    this.requireElement<HTMLButtonElement>('panel-toggle').addEventListener('click', () => this.togglePanel());
+    this.requireElement<HTMLElement>('panel-tabs').addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tab]');
+      const tab = button?.dataset.tab as PanelTab | undefined;
+      if (!tab) return;
+      this.activeTab = tab;
+      this.renderPanel();
+    });
+    this.requireElement<HTMLElement>('panel-content').addEventListener('click', this.onPanelClick);
+    this.requireElement<HTMLElement>('panel-content').addEventListener('change', this.onPanelChange);
+  }
+
+  private renderTopbar(): void {
+    const metrics = this.state.metrics;
+    const dayProgress = clamp((this.state.minute - SHIFT_START) / (SHIFT_END - SHIFT_START) * 100);
+    this.requireElement<HTMLElement>('topbar').innerHTML = `
+      <div class="brand-block"><strong>IT//OPS</strong><span>Day ${this.state.day}</span></div>
+      <div class="clock-block"><strong>${formatTime(this.state.minute)}</strong><span>${Math.round(dayProgress)}% of shift</span></div>
+      ${this.metric('Uptime', `${metrics.uptime.toFixed(1)}%`, metrics.uptime)}
+      ${this.metric('SLA', `${Math.round(metrics.sla)}%`, metrics.sla)}
+      ${this.metric('Security', `${Math.round(metrics.security)}`, metrics.security)}
+      ${this.metric('Morale', `${Math.round(metrics.morale)}`, metrics.morale)}
+      <div class="budget-block"><span>Budget</span><strong>$${Math.round(metrics.budget).toLocaleString()}</strong></div>
+    `;
+  }
+
+  private metric(label: string, value: string, amount: number): string {
+    const className = amount < 45 ? 'critical' : amount < 70 ? 'warning' : 'healthy';
+    return `<div class="metric ${className}"><span>${label}</span><strong>${value}</strong><i style="--value:${clamp(amount)}%"></i></div>`;
+  }
+
+  private renderPanel(): void {
+    const tabs = this.requireElement<HTMLElement>('panel-tabs');
+    tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.tab === this.activeTab);
+    });
+    const content = this.requireElement<HTMLElement>('panel-content');
+    if (this.activeTab === 'tickets') content.innerHTML = this.ticketPanel();
+    else if (this.activeTab === 'team') content.innerHTML = this.teamPanel();
+    else if (this.activeTab === 'operations') content.innerHTML = this.operationsPanel();
+    else content.innerHTML = this.logPanel();
+  }
+
+  private ticketPanel(): string {
+    const openTickets = this.state.tickets
+      .filter((ticket) => ticket.status !== 'resolved' && ticket.status !== 'failed')
+      .sort((a, b) => a.severity - b.severity || a.slaDueMinute - b.slaDueMinute);
+    const resolved = this.state.tickets.filter((ticket) => ticket.status === 'resolved').length;
+    const selected = openTickets.find((ticket) => ticket.id === this.selectedTicketId) ?? openTickets[0] ?? null;
+    if (selected && !this.selectedTicketId) this.selectedTicketId = selected.id;
+
+    const cards = openTickets.map((ticket) => this.ticketCard(ticket, ticket.id === selected?.id)).join('');
+    const details = selected ? this.ticketDetails(selected) : '<div class="empty-state"><strong>Queue cleared.</strong><p>This is either excellent management or a database problem.</p></div>';
+    return `
+      <div class="panel-heading"><div><p class="eyebrow">SERVICE DESK</p><h2>${openTickets.length} open · ${resolved} resolved</h2></div><span class="status-chip">${this.currentSpeed}× speed</span></div>
+      <div class="ticket-layout"><div class="ticket-list">${cards}</div><div class="ticket-details">${details}</div></div>`;
+  }
+
+  private ticketCard(ticket: Ticket, selected: boolean): string {
+    const technician = this.state.technicians.find((item) => item.id === ticket.assignedTo);
+    const minutesLeft = ticket.slaDueMinute - this.state.minute;
+    const slaText = ticket.slaBreached ? 'BREACHED' : minutesLeft <= 0 ? 'DUE' : `${minutesLeft}m`;
+    return `
+      <button class="ticket-card severity-${ticket.severity} ${selected ? 'selected' : ''}" data-ticket-id="${ticket.id}">
+        <span class="ticket-id">${ticket.id} · P${ticket.severity}</span>
+        <strong>${escapeHtml(ticket.title)}</strong>
+        <span>${escapeHtml(ticket.requester)} · ${escapeHtml(ticket.category)}</span>
+        <footer><span>${technician ? escapeHtml(technician.name.split(' ')[0] ?? technician.name) : 'Unassigned'}</span><b class="${ticket.slaBreached ? 'breached' : ''}">${slaText}</b></footer>
+      </button>`;
+  }
+
+  private ticketDetails(ticket: Ticket): string {
+    const total = ticket.effort + ticket.hiddenComplexity;
+    const progress = clamp((1 - ticket.remaining / total) * 100);
+    const options = [
+      '<option value="">Unassigned</option>',
