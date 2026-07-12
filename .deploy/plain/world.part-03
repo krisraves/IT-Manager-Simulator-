@@ -1,0 +1,79 @@
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(...position);
+    sprite.scale.set(scale * 2.66, scale, 1);
+    this.scene.add(sprite);
+  }
+
+  private addCollision(object: THREE.Object3D, expansion: number): void {
+    object.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(object).expandByScalar(expansion);
+    this.collisionBoxes.push(box);
+  }
+
+  private animate = (): void => {
+    this.animationFrame = requestAnimationFrame(this.animate);
+    const delta = Math.min(this.clock.getDelta(), 0.05);
+    this.updateMovement(delta);
+    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    this.updateInteractionTarget();
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  private updateMovement(delta: number): void {
+    if (!this.inputEnabled || document.pointerLockElement !== this.renderer.domElement) return;
+    let forward = 0;
+    let strafe = 0;
+    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) forward += 1;
+    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) forward -= 1;
+    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) strafe += 1;
+    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) strafe -= 1;
+    if (forward === 0 && strafe === 0) return;
+
+    const length = Math.hypot(forward, strafe);
+    forward /= length;
+    strafe /= length;
+    const sin = Math.sin(this.yaw);
+    const cos = Math.cos(this.yaw);
+    const dx = (strafe * cos - forward * sin) * WALK_SPEED * delta;
+    const dz = (forward * cos + strafe * sin) * WALK_SPEED * delta;
+    const proposed = this.camera.position.clone();
+    proposed.x += dx;
+    proposed.z -= dz;
+    proposed.x = THREE.MathUtils.clamp(proposed.x, -9.25, 9.25);
+    proposed.z = THREE.MathUtils.clamp(proposed.z, -7.25, 7.25);
+
+    if (!this.collides(proposed.x, this.camera.position.z)) this.camera.position.x = proposed.x;
+    if (!this.collides(this.camera.position.x, proposed.z)) this.camera.position.z = proposed.z;
+  }
+
+  private collides(x: number, z: number): boolean {
+    for (const box of this.collisionBoxes) {
+      if (
+        x + PLAYER_RADIUS > box.min.x &&
+        x - PLAYER_RADIUS < box.max.x &&
+        z + PLAYER_RADIUS > box.min.z &&
+        z - PLAYER_RADIUS < box.max.z &&
+        PLAYER_HEIGHT > box.min.y &&
+        0 < box.max.y
+      ) return true;
+    }
+    return false;
+  }
+
+  private updateInteractionTarget(): void {
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+    this.raycaster.far = 3.4;
+    const hit = this.raycaster.intersectObjects(this.interactiveMeshes, false)[0];
+    const mesh = hit?.object as InteractiveMesh | undefined;
+    const id = mesh?.userData.interactionId ?? null;
+    const label = mesh?.userData.interactionLabel ?? null;
+    if (id !== this.currentTargetId || label !== this.currentTargetLabel) {
+      this.currentTargetId = id;
+      this.currentTargetLabel = label;
+      this.callbacks.onTargetChanged(label);
+    }
+  }
+}
