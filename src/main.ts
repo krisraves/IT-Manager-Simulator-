@@ -2,6 +2,7 @@ import './styles.css';
 import './mobile.css';
 import './assignment-menu.css';
 import './portrait-fixes.css';
+import './scroll-stability.css';
 import { SaveStore } from './core/save';
 import { Simulation } from './core/simulation';
 import type { DaySummary, GameState } from './core/types';
