@@ -1,0 +1,182 @@
+/* Mobile console stability and portrait layout corrections. */
+.mobile-mode body,
+body.mobile-mode {
+  touch-action: auto;
+}
+
+body.mobile-mode.console-open #display-mode-toggle,
+body.mobile-mode.console-open #orientation-hint {
+  display: none !important;
+}
+
+body.mobile-mode #management-panel {
+  overflow: hidden;
+}
+
+body.mobile-mode #panel-content {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+}
+
+body.mobile-mode .ticket-layout {
+  min-height: auto;
+}
+
+body.mobile-mode .ticket-list {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+body.mobile-mode .ticket-card {
+  flex: 0 0 auto;
+  min-height: 104px;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
+  gap: 5px;
+  overflow: hidden;
+}
+
+body.mobile-mode .ticket-card > span,
+body.mobile-mode .ticket-card > strong,
+body.mobile-mode .ticket-card footer {
+  min-width: 0;
+  position: static;
+}
+
+body.mobile-mode .ticket-card > strong {
+  display: block;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body.mobile-mode .ticket-card > span {
+  display: block;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+body.mobile-mode .ticket-card footer {
+  align-self: end;
+  margin-top: 6px;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+body.mobile-mode .ticket-card footer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mobile-mode .ticket-card footer b {
+  flex: 0 0 auto;
+}
+
+body.mobile-mode .panel-heading {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+}
+
+body.mobile-mode .panel-heading h2 {
+  font-size: clamp(19px, 5.5vw, 24px);
+  line-height: 1.15;
+}
+
+body.mobile-mode .panel-heading .status-chip {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+body.mobile-mode .ticket-details {
+  min-width: 0;
+  overflow: visible;
+}
+
+body.mobile-mode .assignment-listbox {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  body.mobile-mode #topbar {
+    grid-template-columns: 1fr 1fr;
+    min-height: 56px;
+  }
+
+  body.mobile-mode #topbar > :nth-child(n + 3) {
+    display: none;
+  }
+
+  body.mobile-mode #management-panel {
+    top: max(72px, calc(env(safe-area-inset-top) + 66px));
+  }
+
+  body.mobile-mode #panel-tabs {
+    min-width: 0;
+  }
+
+  body.mobile-mode #panel-tabs button {
+    min-width: 0;
+    padding-inline: 2px;
+    font-size: clamp(9px, 2.8vw, 11px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.mobile-mode #panel-content {
+    padding: 12px 10px 84px;
+  }
+
+  body.mobile-mode .ticket-list {
+    display: grid;
+    gap: 9px;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  body.mobile-mode .ticket-card {
+    min-height: 112px;
+    padding: 12px;
+  }
+
+  body.mobile-mode .ticket-card > strong {
+    font-size: 14px;
+  }
+
+  body.mobile-mode .ticket-card > span,
+  body.mobile-mode .ticket-card footer {
+    font-size: 11px;
+  }
+
+  body.mobile-mode .ticket-details {
+    margin-top: 4px;
+    padding: 14px;
+  }
+
+  body.mobile-mode .detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body.mobile-mode .assignment-listbox {
+    max-height: 42vh;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 420px) {
+  body.mobile-mode .panel-heading .status-chip {
+    margin-left: 0;
+  }
+
+  body.mobile-mode .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
