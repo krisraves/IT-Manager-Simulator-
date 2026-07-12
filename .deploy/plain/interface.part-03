@@ -28,13 +28,13 @@
     if (assignmentToggle?.dataset.assignmentToggle) {
       const ticketId = assignmentToggle.dataset.assignmentToggle;
       this.openAssignmentTicketId = this.openAssignmentTicketId === ticketId ? null : ticketId;
-      this.renderPanel();
-      if (this.openAssignmentTicketId) {
+      this.renderPanel(true);
+      if (this.openAssignmentTicketId && !window.matchMedia('(pointer: coarse)').matches) {
         window.requestAnimationFrame(() => {
           const list = document.getElementById(`assignment-list-${ticketId}`);
           const selected = list?.querySelector<HTMLElement>('[aria-selected="true"]');
           const first = list?.querySelector<HTMLElement>('[data-assignment-choice]');
-          (selected ?? first)?.focus();
+          (selected ?? first)?.focus({ preventScroll: true });
         });
       }
       return;
@@ -48,7 +48,7 @@
     if (ticketButton?.dataset.ticketId) {
       this.selectedTicketId = ticketButton.dataset.ticketId;
       this.openAssignmentTicketId = null;
-      this.renderPanel();
+      this.renderPanel(true);
       return;
     }
     const trainButton = target.closest<HTMLButtonElement>('[data-train]');
@@ -68,7 +68,7 @@
       if (Number.isFinite(speed)) {
         this.currentSpeed = speed;
         this.callbacks.onSpeedChange(speed);
-        this.renderPanel();
+        this.renderPanel(true);
       }
       return;
     }
@@ -77,6 +77,65 @@
     else if (action === 'load') this.callbacks.onLoad();
     else if (action === 'end-day') this.callbacks.onEndDay();
   };
+
+  private readonly onPanelPointerDown = (): void => {
+    this.panelPointerActive = true;
+  };
+
+  private readonly onPanelPointerEnd = (): void => {
+    this.panelPointerActive = false;
+    window.setTimeout(() => this.flushPendingPanelRender(), 220);
+  };
+
+  private readonly onPanelScroll = (event: Event): void => {
+    if (this.restoringScroll) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === 'panel-content') this.panelScrollTop = target.scrollTop;
+    else if (target.classList.contains('ticket-list')) this.ticketListScrollTop = target.scrollTop;
+    else if (target.classList.contains('assignment-listbox')) this.assignmentListScrollTop = target.scrollTop;
+
+    if (this.panelScrollTimer !== null) window.clearTimeout(this.panelScrollTimer);
+    this.panelScrollTimer = window.setTimeout(() => {
+      this.panelScrollTimer = null;
+      this.flushPendingPanelRender();
+    }, 260);
+  };
+
+  private isPanelInteractionBusy(): boolean {
+    return this.panelPointerActive || this.panelScrollTimer !== null;
+  }
+
+  private flushPendingPanelRender(): void {
+    if (!this.pendingPanelRender || this.isPanelInteractionBusy()) return;
+    this.renderPanel(true);
+  }
+
+  private captureScrollPositions(content: HTMLElement): void {
+    this.panelScrollTop = content.scrollTop;
+    const ticketList = content.querySelector<HTMLElement>('.ticket-list');
+    if (ticketList) this.ticketListScrollTop = ticketList.scrollTop;
+    const assignmentList = content.querySelector<HTMLElement>('.assignment-listbox');
+    if (assignmentList) this.assignmentListScrollTop = assignmentList.scrollTop;
+  }
+
+  private resetScrollPositions(): void {
+    this.panelScrollTop = 0;
+    this.ticketListScrollTop = 0;
+    this.assignmentListScrollTop = 0;
+  }
+
+  private restoreScrollPositions(content: HTMLElement): void {
+    window.requestAnimationFrame(() => {
+      this.restoringScroll = true;
+      content.scrollTop = this.panelScrollTop;
+      const ticketList = content.querySelector<HTMLElement>('.ticket-list');
+      if (ticketList) ticketList.scrollTop = this.ticketListScrollTop;
+      const assignmentList = content.querySelector<HTMLElement>('.assignment-listbox');
+      if (assignmentList) assignmentList.scrollTop = this.assignmentListScrollTop;
+      window.requestAnimationFrame(() => { this.restoringScroll = false; });
+    });
+  }
 
   private skillFit(technician: Technician, ticket: Ticket): string {
     const fit = technician.skills[ticket.category] - ticket.requiredSkill;
