@@ -1,16 +1,22 @@
-        <section id="start-overlay" class="modal-layer">
+        <section id="start-overlay" class="modal-layer start-layer">
           <div class="modal-card start-card">
-            <p class="eyebrow">VERTICAL SLICE · DAY ONE</p>
+            <p class="eyebrow">NEW GAME BRIEFING · DAY ONE</p>
             <h1>IT Manager Simulator</h1>
-            <p>Run the department, assign the queue, inspect the office, and try to reach 5:00 PM without converting the company into a postmortem.</p>
-            <div class="controls-grid">
+            <p class="start-intro">Keep the startup alive until 5:00 PM. The queue is real, the deadlines are moving, and the printer has already chosen violence.</p>
+            <div class="briefing-steps" aria-label="How to play">
+              <article><span>1</span><div><strong>Prioritize the queue</strong><p>Open the console, select urgent tickets, and assign technicians with the right skills before the SLA expires.</p></div></article>
+              <article><span>2</span><div><strong>Manage the people</strong><p>Watch morale, stress, fatigue, budget, uptime, and security. Fast decisions can create slower disasters.</p></div></article>
+              <article><span>3</span><div><strong>Walk the office</strong><p>Talk to technicians and inspect equipment. Some problems improve when management physically acknowledges they exist.</p></div></article>
+            </div>
+            <div class="controls-grid" aria-label="Basic controls">
               <span><kbd>WASD</kbd> Move</span>
               <span><kbd>Mouse</kbd> Look</span>
               <span><kbd>E</kbd> Interact</span>
               <span><kbd>Tab</kbd> Console</span>
               <span><kbd>Esc</kbd> Release cursor</span>
             </div>
-            <button id="start-button" class="primary-button">Enter the office</button>
+            <p class="start-help-note">Detailed instructions and tips are available from <strong>Operations → ?</strong>.</p>
+            <button id="start-button" class="primary-button">Start the shift</button>
           </div>
         </section>
       </main>`;
@@ -32,6 +38,7 @@
     const panelContent = this.requireElement<HTMLElement>('panel-content');
     panelContent.addEventListener('click', this.onPanelClick);
     panelContent.addEventListener('scroll', this.onPanelScroll, { capture: true, passive: true });
+    this.requireElement<HTMLElement>('help-modal').addEventListener('click', this.onHelpClick);
   }
 
   private renderTopbar(): void {
