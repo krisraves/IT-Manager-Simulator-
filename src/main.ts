@@ -5,9 +5,11 @@ import './portrait-fixes.css';
 import './scroll-stability.css';
 import './help.css';
 import './console-controls.css';
+import './employment.css';
 import { SaveStore } from './core/save';
 import { Simulation } from './core/simulation';
 import type { DaySummary, GameState } from './core/types';
+import { EmploymentUi } from './employment-ui';
 import { MobileControls } from './mobile';
 import { OfficeWorld } from './render/world';
 import { GameInterface } from './ui/interface';
@@ -20,6 +22,7 @@ let simulation = new Simulation();
 let speed = 1;
 let world: OfficeWorld;
 let ui: GameInterface;
+let employmentUi: EmploymentUi;
 let mobileControls: MobileControls | null = null;
 let lastAutosaveMinute = simulation.getState().minute;
 
@@ -42,6 +45,7 @@ const bindSimulation = (): void => {
   simulation.subscribe((event) => {
     if (event.type === 'state-changed') {
       ui.render(event.state);
+      employmentUi.render(event.state);
       world.updateState(event.state);
       world.setInputEnabled(!ui.isPanelVisible() && !event.state.pendingDecision && !event.state.dayEnded);
       if (event.state.minute - lastAutosaveMinute >= 15 || event.state.dayEnded) {
@@ -50,6 +54,15 @@ const bindSimulation = (): void => {
       }
     } else if (event.type === 'toast') {
       ui.showToast(event.tone, event.message);
+    } else if (event.type === 'employment-warning') {
+      ui.showToast(event.status === 'probation' ? 'bad' : 'warning', event.message);
+    } else if (event.type === 'fired') {
+      speed = 0;
+      ui.setSimulationSpeed(0);
+      mobileControls?.setSpeed(0);
+      world.setInputEnabled(false);
+      employmentUi.render(simulation.getState());
+      void saveStore.save(simulation.snapshot());
     } else if (event.type === 'day-ended') {
       handleDayEnded(event.summary);
     }
@@ -66,7 +79,10 @@ const loadState = async (): Promise<void> => {
   ui.refreshPanel();
   lastAutosaveMinute = state.minute;
   ui.showToast('good', 'Saved shift restored. Consequences included.');
-  if (state.dayEnded && state.score !== null) ui.showSummary(summaryFromState(state));
+  const restored = simulation.getState();
+  if (restored.dayEnded && restored.score !== null && restored.employment.status !== 'fired') {
+    ui.showSummary(summaryFromState(restored));
+  }
 };
 
 const summaryFromState = (state: Readonly<GameState>): DaySummary => {
@@ -122,6 +138,9 @@ world = new OfficeWorld(worldHost, simulation.getState().technicians, {
   onTargetChanged: (label) => ui.setInteractionLabel(label),
 });
 world.updateState(simulation.getState());
+
+employmentUi = new EmploymentUi();
+employmentUi.render(simulation.getState());
 
 mobileControls = new MobileControls(world, ui, {
   onInteract: performInteraction,
