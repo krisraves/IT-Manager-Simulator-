@@ -38,6 +38,8 @@ export class MobileControls {
   private lookPointerId: number | null = null;
   private lastLookX = 0;
   private lastLookY = 0;
+  private orientationHintShown = false;
+  private orientationHintTimer: number | null = null;
 
   public constructor(world: OfficeWorld, ui: GameInterface, callbacks: MobileControlCallbacks) {
     this.world = world;
@@ -82,6 +84,7 @@ export class MobileControls {
     window.removeEventListener('orientationchange', this.onEnvironmentChanged);
     this.coarsePointer.removeEventListener('change', this.onEnvironmentChanged);
     this.noHover.removeEventListener('change', this.onEnvironmentChanged);
+    if (this.orientationHintTimer !== null) window.clearTimeout(this.orientationHintTimer);
     this.root.remove();
     this.modeButton.remove();
     this.orientationHint.remove();
@@ -270,7 +273,21 @@ export class MobileControls {
 
   private updateOrientationHint(): void {
     const portrait = window.innerHeight > window.innerWidth;
-    this.orientationHint.hidden = !(this.active && !this.panelOpen && portrait && window.innerWidth < 900);
+    const shouldShow = this.active && !this.panelOpen && portrait && window.innerWidth < 900;
+
+    if (!shouldShow) {
+      this.orientationHint.hidden = true;
+      return;
+    }
+    if (this.orientationHintShown) return;
+
+    this.orientationHintShown = true;
+    this.orientationHint.hidden = false;
+    if (this.orientationHintTimer !== null) window.clearTimeout(this.orientationHintTimer);
+    this.orientationHintTimer = window.setTimeout(() => {
+      this.orientationHint.hidden = true;
+      this.orientationHintTimer = null;
+    }, 5_000);
   }
 
   private readMode(): DisplayMode {
