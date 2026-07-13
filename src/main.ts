@@ -4,6 +4,7 @@ import './assignment-menu.css';
 import './portrait-fixes.css';
 import './scroll-stability.css';
 import './help.css';
+import './console-controls.css';
 import { SaveStore } from './core/save';
 import { Simulation } from './core/simulation';
 import type { DaySummary, GameState } from './core/types';
