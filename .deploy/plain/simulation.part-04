@@ -16,6 +16,61 @@
     this.state.metrics.sla = eligible.length === 0 ? 100 : clamp(100 - breached / eligible.length * 100);
   }
 
+  private updateEmploymentRisk(): void {
+    if (this.state.employment.status === 'fired') return;
+
+    const employment = this.state.employment;
+    const targetRisk = calculateEmploymentTargetRisk(this.state);
+    employment.risk = clamp(employment.risk * 0.82 + targetRisk * 0.18);
+
+    const previousStatus = employment.status;
+    const calculatedStatus = employmentStatusForRisk(employment.risk);
+    employment.status = calculatedStatus === 'fired' ? 'probation' : calculatedStatus;
+
+    if (employment.risk >= 84) employment.criticalMinutes += 1;
+    else employment.criticalMinutes = Math.max(0, employment.criticalMinutes - 2);
+
+    const catastrophic =
+      this.state.metrics.uptime < 74 ||
+      this.state.metrics.executiveConfidence < 16 ||
+      this.state.metrics.reputation < 14 ||
+      this.state.metrics.security < 12;
+    if (catastrophic) employment.criticalMinutes += 1;
+
+    if (employment.status !== previousStatus) {
+      if (employment.status === 'watch') {
+        const message = 'JOB SECURITY WARNING: Executive patience is declining. Recover SLA, uptime, and confidence before this becomes formal.';
+        this.addLog('warning', message);
+        this.emit({ type: 'employment-warning', status: 'watch', risk: employment.risk, message });
+      } else if (employment.status === 'probation') {
+        const message = 'FINAL WARNING: Your role is under review. Improve operations immediately or expect an unusually short meeting with HR.';
+        this.addLog('bad', message);
+        this.emit({ type: 'employment-warning', status: 'probation', risk: employment.risk, message });
+      } else if (employment.status === 'secure' && previousStatus !== 'secure') {
+        this.addLog('good', 'Employment risk returned to a tolerable level. The calendar invitation from HR disappeared without explanation.');
+        this.toast('good', 'Job security stabilized.');
+      }
+    }
+
+    const gracePeriodOver = this.state.minute >= SHIFT_START + 120;
+    const sustainedFailure = employment.criticalMinutes >= 18;
+    const catastrophicFailure = catastrophic && employment.criticalMinutes >= 8;
+    if (gracePeriodOver && (sustainedFailure || catastrophicFailure)) this.firePlayer();
+  }
+
+  private firePlayer(): void {
+    if (this.state.employment.status === 'fired') return;
+    const reason = firingReason(this.state);
+    this.state.employment.status = 'fired';
+    this.state.employment.risk = 100;
+    this.state.employment.firedReason = reason;
+    this.state.dayEnded = true;
+    this.state.score = 0;
+    this.state.pendingDecision = null;
+    this.addLog('bad', `Employment terminated: ${reason}`);
+    this.emit({ type: 'fired', reason, risk: 100 });
+  }
+
   private buildSummary(): DaySummary {
     const resolved = this.state.tickets.filter((ticket) => ticket.status === 'resolved').length;
     const breached = this.state.tickets.filter((ticket) => ticket.slaBreached).length;
