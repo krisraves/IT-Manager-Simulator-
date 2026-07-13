@@ -2,6 +2,7 @@ export type TicketCategory = 'hardware' | 'network' | 'identity' | 'security' | 
 export type TicketSeverity = 1 | 2 | 3 | 4;
 export type TicketStatus = 'unassigned' | 'active' | 'resolved' | 'failed';
 export type Trait = 'wizard' | 'friendly' | 'junior' | 'burned-out' | 'security-first' | 'cowboy';
+export type EmploymentStatus = 'secure' | 'watch' | 'probation' | 'fired';
 
 export interface Skills {
   readonly hardware: number;
@@ -63,6 +64,13 @@ export interface Metrics {
   reputation: number;
 }
 
+export interface EmploymentState {
+  risk: number;
+  status: EmploymentStatus;
+  criticalMinutes: number;
+  firedReason: string | null;
+}
+
 export interface EventLogEntry {
   readonly id: number;
   readonly minute: number;
@@ -91,6 +99,8 @@ export interface GameState {
   minute: number;
   dayEnded: boolean;
   score: number | null;
+  difficulty: number;
+  employment: EmploymentState;
   metrics: Metrics;
   technicians: Technician[];
   tickets: Ticket[];
@@ -114,4 +124,6 @@ export type SimulationEvent =
   | { readonly type: 'state-changed'; readonly state: GameState }
   | { readonly type: 'toast'; readonly tone: EventLogEntry['tone']; readonly message: string }
   | { readonly type: 'decision'; readonly decision: PendingDecision }
+  | { readonly type: 'employment-warning'; readonly status: Exclude<EmploymentStatus, 'secure' | 'fired'>; readonly risk: number; readonly message: string }
+  | { readonly type: 'fired'; readonly reason: string; readonly risk: number }
   | { readonly type: 'day-ended'; readonly summary: DaySummary };
