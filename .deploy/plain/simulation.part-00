@@ -1,6 +1,7 @@
 import { DECISIONS, INITIAL_TICKETS, RANDOM_TICKETS, SHIFT_END, SHIFT_START, createTechnicians, createTicket } from './content';
+import { calculateDifficulty, calculateEmploymentTargetRisk, defaultEmploymentState, employmentStatusForRisk, firingReason } from './pressure';
 import { SeededRng } from './rng';
-import type { DaySummary, EventLogEntry, GameState, SimulationEvent, Technician, Ticket } from './types';
+import type { DaySummary, EmploymentState, EventLogEntry, GameState, SimulationEvent, Technician, Ticket } from './types';
 
 type Listener = (event: SimulationEvent) => void;
 
@@ -12,13 +13,18 @@ export class Simulation {
   private readonly rng: SeededRng;
 
   public constructor(seed = Date.now() >>> 0, restoredState?: GameState) {
-    this.state = restoredState ? structuredClone(restoredState) : Simulation.createInitialState(seed);
+    this.state = restoredState ? Simulation.normalizeState(restoredState) : Simulation.createInitialState(seed);
     this.rng = new SeededRng(this.state.rngState);
   }
 
   public static createInitialState(seed: number): GameState {
     const normalizedSeed = seed >>> 0 || 1;
-    const tickets = INITIAL_TICKETS.map((template, index) => createTicket(template, `T-${101 + index}`, SHIFT_START));
+    const tickets = INITIAL_TICKETS.slice(0, 3).map((template, index) => createTicket(
+      template,
+      `T-${101 + index}`,
+      SHIFT_START,
+      { effortMultiplier: 0.78, complexityMultiplier: 0.55, slaMultiplier: 1.3, skillDelta: -1 },
+    ));
     return {
       version: 1,
       seed: normalizedSeed,
@@ -27,25 +33,40 @@ export class Simulation {
       minute: SHIFT_START,
       dayEnded: false,
       score: null,
+      difficulty: calculateDifficulty(SHIFT_START),
+      employment: defaultEmploymentState(),
       metrics: {
         uptime: 99.9,
         sla: 100,
-        security: 62,
-        morale: 74,
+        security: 66,
+        morale: 76,
         budget: 12_000,
-        executiveConfidence: 64,
-        userSatisfaction: 70,
-        technicalDebt: 44,
-        reputation: 60,
+        executiveConfidence: 68,
+        userSatisfaction: 74,
+        technicalDebt: 42,
+        reputation: 64,
       },
       technicians: createTechnicians(),
       tickets,
-      log: [{ id: 1, minute: SHIFT_START, tone: 'info', message: 'Shift started. Five tickets are waiting. Naturally, one is about a printer.' }],
+      log: [{ id: 1, minute: SHIFT_START, tone: 'info', message: 'Shift started with three manageable tickets. This courtesy will not continue.' }],
       pendingDecision: null,
       scriptedFlags: {},
-      nextTicketNumber: 106,
+      nextTicketNumber: 104,
       nextLogId: 2,
     };
+  }
+
+  private static normalizeState(state: GameState): GameState {
+    const normalized = structuredClone(state) as GameState & {
+      difficulty?: number;
+      employment?: Partial<EmploymentState>;
+    };
+    normalized.difficulty = normalized.difficulty ?? calculateDifficulty(normalized.minute);
+    normalized.employment = {
+      ...defaultEmploymentState(),
+      ...(normalized.employment ?? {}),
+    };
+    return normalized as GameState;
   }
 
   public subscribe(listener: Listener): () => void {
@@ -66,7 +87,7 @@ export class Simulation {
     if (nextState.version !== 1) {
       throw new Error(`Unsupported save version: ${String(nextState.version)}`);
     }
-    this.state = structuredClone(nextState);
+    this.state = Simulation.normalizeState(nextState);
     this.rng.setState(this.state.rngState);
     this.emit({ type: 'state-changed', state: this.state });
   }
@@ -80,12 +101,14 @@ export class Simulation {
         break;
       }
       this.state.minute += 1;
+      this.state.difficulty = calculateDifficulty(this.state.minute);
       this.progressTechnicians();
       this.checkSlaBreaches();
       this.runScriptedEvents();
       this.maybeGenerateTicket();
       this.recalculateTeamMetrics();
-      if (this.state.pendingDecision) break;
+      this.updateEmploymentRisk();
+      if (this.state.pendingDecision || this.state.dayEnded) break;
     }
     this.state.rngState = this.rng.getState();
     this.emit({ type: 'state-changed', state: this.state });
