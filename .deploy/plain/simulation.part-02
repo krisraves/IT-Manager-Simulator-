@@ -7,7 +7,51 @@
   }
 
   private runScriptedEvents(): void {
-    if (this.state.minute >= 10 * 60 && !this.state.scriptedFlags.allHands) {
+    if (this.state.difficulty >= 25 && !this.state.scriptedFlags.pressure25) {
+      this.state.scriptedFlags.pressure25 = true;
+      this.addLog('info', 'Ticket volume is increasing. The morning tutorial has concluded without filing the required change request.');
+    }
+    if (this.state.difficulty >= 50 && !this.state.scriptedFlags.pressure50) {
+      this.state.scriptedFlags.pressure50 = true;
+      this.addLog('warning', 'Midday pressure has arrived: shorter SLAs, harder work, and more people discovering the word “urgent.”');
+      this.toast('warning', 'Workload pressure is increasing.');
+    }
+    if (this.state.difficulty >= 75 && !this.state.scriptedFlags.pressure75) {
+      this.state.scriptedFlags.pressure75 = true;
+      this.addLog('bad', 'Late-shift difficulty is active. Every shortcut taken earlier has submitted a follow-up ticket.');
+      this.toast('warning', 'Late-shift incident pressure is now high.');
+    }
+
+    if (this.state.minute >= 9 * 60 + 30 && !this.state.scriptedFlags.laptopWave) {
+      this.state.scriptedFlags.laptopWave = true;
+      const laptopTemplate = INITIAL_TICKETS[4];
+      if (laptopTemplate) {
+        const ticket = createTicket(laptopTemplate, Simulation.createTicketId(this.state), this.state.minute, {
+          effortMultiplier: 0.8,
+          complexityMultiplier: 0.6,
+          slaMultiplier: 1.25,
+        });
+        this.state.tickets.push(ticket);
+        this.addLog('info', `New ${ticket.id}: ${ticket.title}. The office is still being polite.`);
+      }
+    }
+
+    if (this.state.minute >= 10 * 60 + 15 && !this.state.scriptedFlags.certificateArrival) {
+      this.state.scriptedFlags.certificateArrival = true;
+      const certificateTemplate = INITIAL_TICKETS[3];
+      if (certificateTemplate) {
+        const ticket = createTicket(certificateTemplate, Simulation.createTicketId(this.state), this.state.minute, {
+          effortMultiplier: 0.92,
+          complexityMultiplier: 0.85,
+          slaMultiplier: 1.05,
+        });
+        this.state.tickets.push(ticket);
+        this.addLog('warning', `New ${ticket.id}: ${ticket.title}. The forgiving portion of the shift is over.`);
+        this.toast('warning', 'Critical certificate work entered the queue.');
+      }
+    }
+
+    if (this.state.minute >= 11 * 60 && !this.state.scriptedFlags.allHands) {
       this.state.scriptedFlags.allHands = true;
       this.addTicket({
         title: 'All-hands room has video but no audio', requester: 'Chief of Staff', category: 'hardware', severity: 2,
@@ -16,7 +60,7 @@
       this.toast('warning', 'Urgent ticket: all-hands audio failure.');
     }
 
-    if (this.state.minute >= 11 * 60 + 30 && !this.state.scriptedFlags.certificateEscalation) {
+    if (this.state.minute >= 12 * 60 + 30 && !this.state.scriptedFlags.certificateEscalation) {
       this.state.scriptedFlags.certificateEscalation = true;
       const certificate = this.state.tickets.find((ticket) => ticket.title.includes('certificate'));
       if (certificate && certificate.status !== 'resolved') {
@@ -44,14 +88,30 @@
 
   private maybeGenerateTicket(): void {
     if (this.state.minute % 15 !== 0) return;
+    const progress = this.state.difficulty / 100;
     const openCount = this.state.tickets.filter((ticket) => ticket.status !== 'resolved' && ticket.status !== 'failed').length;
-    if (openCount >= 10) return;
-    const chance = 0.32 + Math.max(0, this.state.metrics.technicalDebt - 50) / 250;
+    const openLimit = 5 + Math.round(progress * 8);
+    if (openCount >= openLimit) return;
+
+    const debtPressure = Math.max(0, this.state.metrics.technicalDebt - 45) / 220;
+    const chance = 0.08 + progress * 0.58 + debtPressure;
     if (this.rng.next() < chance) {
       const template = this.rng.pick(RANDOM_TICKETS);
-      this.state.tickets.push(createTicket(template, Simulation.createTicketId(this.state), this.state.minute));
-      this.addLog('warning', `New ticket: ${template.title}.`);
-      this.toast('warning', 'A new ticket entered the queue. It claims to be quick.');
+      const severityDelta = this.rng.next() < progress * 0.36 ? -1 : 0;
+      const ticket = createTicket(template, Simulation.createTicketId(this.state), this.state.minute, {
+        effortMultiplier: 0.72 + progress * 0.95,
+        complexityMultiplier: 0.5 + progress * 1.5,
+        slaMultiplier: 1.35 - progress * 0.55,
+        skillDelta: Math.round(progress * 2) - 1,
+        severityDelta,
+        impactMultiplier: 0.8 + progress * 0.55,
+        securityRiskMultiplier: 0.8 + progress * 0.7,
+      });
+      this.state.tickets.push(ticket);
+      this.addLog(ticket.severity <= 2 ? 'bad' : 'warning', `New ${ticket.id}: ${ticket.title}. Difficulty ${this.state.difficulty}%.`);
+      this.toast(ticket.severity <= 2 ? 'bad' : 'warning', ticket.severity <= 2
+        ? `Urgent ${ticket.id} entered the queue.`
+        : 'A new ticket entered the queue. It claims to be quick.');
     }
   }
 
@@ -59,6 +119,10 @@
     title: string; requester: string; category: Ticket['category']; severity: Ticket['severity']; businessImpact: number;
     requiredSkill: number; effort: number; hiddenComplexity: number; securityRisk: number; slaMinutes: number;
   }): void {
+    const progress = this.state.difficulty / 100;
+    const effort = Math.max(8, Math.round(input.effort * (0.85 + progress * 0.45)));
+    const complexity = Math.max(0, Math.round(input.hiddenComplexity * (0.75 + progress * 0.65)));
+    const slaMinutes = Math.max(45, Math.round(input.slaMinutes * (1.15 - progress * 0.25)));
     const ticket: Ticket = {
       id: Simulation.createTicketId(this.state),
       title: input.title,
@@ -66,13 +130,13 @@
       category: input.category,
       severity: input.severity,
       businessImpact: input.businessImpact,
-      requiredSkill: input.requiredSkill,
-      effort: input.effort,
-      hiddenComplexity: input.hiddenComplexity,
+      requiredSkill: Math.min(10, Math.round(input.requiredSkill + progress)),
+      effort,
+      hiddenComplexity: complexity,
       securityRisk: input.securityRisk,
       createdMinute: this.state.minute,
-      slaDueMinute: this.state.minute + input.slaMinutes,
-      remaining: input.effort + input.hiddenComplexity,
+      slaDueMinute: this.state.minute + slaMinutes,
+      remaining: effort + complexity,
       status: 'unassigned',
       assignedTo: null,
       escalationLevel: 0,
