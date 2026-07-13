@@ -1,0 +1,361 @@
+/* New-game briefing and in-game field manual. */
+.start-layer {
+  z-index: 72;
+}
+
+.start-card {
+  width: min(780px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.start-intro {
+  max-width: 680px;
+  margin-bottom: 18px;
+}
+
+.briefing-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.briefing-steps article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 12px;
+}
+
+.briefing-steps article > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(103, 216, 255, 0.55);
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.briefing-steps strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.briefing-steps p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.start-help-note {
+  margin: 0 0 15px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.control-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.control-card-heading h3 {
+  margin-top: 2px;
+}
+
+.help-icon-button {
+  flex: 0 0 auto;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(103, 216, 255, 0.55) !important;
+  border-radius: 50%;
+  background: rgba(103, 216, 255, 0.09) !important;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-icon-button:hover,
+.help-icon-button:focus-visible {
+  background: rgba(103, 216, 255, 0.2) !important;
+}
+
+.help-layer {
+  z-index: 82;
+}
+
+.help-card {
+  width: min(820px, 100%);
+  max-height: min(900px, calc(100dvh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 0;
+  overflow: hidden;
+}
+
+.help-header,
+.help-footer {
+  position: relative;
+  z-index: 2;
+  background: #111b25;
+}
+
+.help-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-header h2 {
+  margin: 4px 0 0;
+}
+
+.help-close-button {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.035);
+  color: #edf5fb;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+  overflow-anchor: none;
+  padding: 18px 22px 24px;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.help-section + .help-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.help-section h3 {
+  margin: 0 0 8px;
+  color: #edf5fb;
+}
+
+.help-section p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.help-control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.help-control-grid span {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 8px;
+  color: #c1d2dd;
+  font-size: 11px;
+}
+
+.mobile-help {
+  display: none;
+}
+
+.mobile-mode .desktop-help {
+  display: none;
+}
+
+.mobile-mode .mobile-help {
+  display: grid;
+}
+
+.help-priority-grid,
+.help-tip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.help-priority-grid article,
+.help-tip-grid article {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 10px;
+}
+
+.help-priority-grid article {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.help-priority-grid span,
+.help-tip-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.help-tip-grid strong,
+.help-tip-grid span {
+  display: block;
+}
+
+.help-tip-grid strong {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.help-priority {
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 4px 6px;
+  color: #0c1218;
+  text-align: center;
+}
+
+.help-priority.p1 { background: var(--bad); }
+.help-priority.p2 { background: var(--warn); }
+.help-priority.p3 { background: #7fb4ff; }
+.help-priority.p4 { background: #8998a6; }
+
+.help-steps,
+.help-tips {
+  margin: 0;
+  padding-left: 20px;
+  color: #c1d2dd;
+}
+
+.help-steps li,
+.help-tips li {
+  padding: 3px 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.help-steps + p {
+  margin-top: 8px;
+}
+
+.help-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--line);
+}
+
+body.help-open #mobile-controls,
+body.help-open #display-mode-toggle,
+body.help-open #orientation-hint {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .briefing-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .help-control-grid,
+  .help-priority-grid,
+  .help-tip-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .start-layer,
+  .help-layer {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  .start-card {
+    max-height: calc(100dvh - 16px);
+    padding: 18px;
+  }
+
+  .start-card h1 {
+    font-size: clamp(32px, 11vw, 46px);
+  }
+
+  .start-intro {
+    font-size: 12px;
+  }
+
+  .briefing-steps {
+    margin: 14px 0;
+  }
+
+  .briefing-steps article {
+    padding: 10px;
+  }
+
+  .controls-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .help-card {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .help-header {
+    padding: 16px 14px 12px;
+  }
+
+  .help-header h2 {
+    font-size: 21px;
+  }
+
+  .help-scroll {
+    padding: 14px;
+  }
+
+  .help-footer {
+    padding: 10px 14px 14px;
+  }
+
+  .help-footer .primary-button {
+    width: 100%;
+  }
+}
