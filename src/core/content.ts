@@ -34,7 +34,7 @@ export const createTechnicians = (): Technician[] => [
   },
 ];
 
-interface TicketTemplate {
+export interface TicketTemplate {
   readonly title: string;
   readonly requester: string;
   readonly category: TicketCategory;
@@ -45,6 +45,16 @@ interface TicketTemplate {
   readonly complexity: number;
   readonly securityRisk: number;
   readonly slaMinutes: number;
+}
+
+export interface TicketTuning {
+  readonly effortMultiplier?: number;
+  readonly complexityMultiplier?: number;
+  readonly slaMultiplier?: number;
+  readonly skillDelta?: number;
+  readonly severityDelta?: number;
+  readonly impactMultiplier?: number;
+  readonly securityRiskMultiplier?: number;
 }
 
 export const INITIAL_TICKETS: readonly TicketTemplate[] = [
@@ -64,26 +74,41 @@ export const RANDOM_TICKETS: readonly TicketTemplate[] = [
   { title: 'Shared mailbox permissions are interpretive', requester: 'Support', category: 'identity', severity: 3, impact: 40, skill: 6, effort: 55, complexity: 10, securityRisk: 5, slaMinutes: 180 },
 ];
 
-export const createTicket = (template: TicketTemplate, id: string, createdMinute: number): Ticket => ({
-  id,
-  title: template.title,
-  requester: template.requester,
-  category: template.category,
-  severity: template.severity,
-  businessImpact: template.impact,
-  requiredSkill: template.skill,
-  effort: template.effort,
-  hiddenComplexity: template.complexity,
-  securityRisk: template.securityRisk,
-  createdMinute,
-  slaDueMinute: createdMinute + template.slaMinutes,
-  remaining: template.effort + template.complexity,
-  status: 'unassigned',
-  assignedTo: null,
-  escalationLevel: 0,
-  slaBreached: false,
-  resolutionNote: null,
-});
+export const createTicket = (
+  template: TicketTemplate,
+  id: string,
+  createdMinute: number,
+  tuning: TicketTuning = {},
+): Ticket => {
+  const effort = Math.max(8, Math.round(template.effort * (tuning.effortMultiplier ?? 1)));
+  const complexity = Math.max(0, Math.round(template.complexity * (tuning.complexityMultiplier ?? 1)));
+  const severity = Math.min(4, Math.max(1, template.severity + (tuning.severityDelta ?? 0))) as TicketSeverity;
+  const skill = Math.min(10, Math.max(1, Math.round(template.skill + (tuning.skillDelta ?? 0))));
+  const impact = Math.min(100, Math.max(1, Math.round(template.impact * (tuning.impactMultiplier ?? 1))));
+  const securityRisk = Math.min(100, Math.max(0, Math.round(template.securityRisk * (tuning.securityRiskMultiplier ?? 1))));
+  const slaMinutes = Math.max(45, Math.round(template.slaMinutes * (tuning.slaMultiplier ?? 1)));
+
+  return {
+    id,
+    title: template.title,
+    requester: template.requester,
+    category: template.category,
+    severity,
+    businessImpact: impact,
+    requiredSkill: skill,
+    effort,
+    hiddenComplexity: complexity,
+    securityRisk,
+    createdMinute,
+    slaDueMinute: createdMinute + slaMinutes,
+    remaining: effort + complexity,
+    status: 'unassigned',
+    assignedTo: null,
+    escalationLevel: 0,
+    slaBreached: false,
+    resolutionNote: null,
+  };
+};
 
 export const DECISIONS: Readonly<Record<string, PendingDecision>> = {
   shadowIt: {
