@@ -31,8 +31,11 @@
         <article class="upgrade-card ${flags['upgrade-spares'] ? 'purchased' : ''}"><span class="upgrade-icon">▣</span><h3>Spare Hardware Stock</h3><p>Reduces remaining work on hardware tickets and trims technical debt.</p><strong>$1,200</strong><button data-upgrade="spares" ${flags['upgrade-spares'] ? 'disabled' : ''}>${flags['upgrade-spares'] ? 'Purchased' : 'Purchase'}</button></article>
         <article class="upgrade-card ${flags['upgrade-monitoring'] ? 'purchased' : ''}"><span class="upgrade-icon">⌁</span><h3>Monitoring Upgrade</h3><p>Improves security posture, reduces technical debt, and softens outage damage.</p><strong>$950</strong><button data-upgrade="monitoring" ${flags['upgrade-monitoring'] ? 'disabled' : ''}>${flags['upgrade-monitoring'] ? 'Purchased' : 'Purchase'}</button></article>
       </div>
-      <section class="control-card">
-        <h3>Simulation speed</h3>
+      <section class="control-card pause-control-card">
+        <div class="control-card-heading">
+          <div><p class="eyebrow">PAUSE MENU</p><h3>Simulation speed</h3></div>
+          <button type="button" class="help-icon-button" data-action="help" aria-label="Open instructions, hints, and tips" title="How to play">?</button>
+        </div>
         <div class="segmented-control">
           ${[0, 1, 4].map((speed) => `<button data-speed="${speed}" class="${this.currentSpeed === speed ? 'active' : ''}">${speed === 0 ? 'Paused' : `${speed}×`}</button>`).join('')}
         </div>
