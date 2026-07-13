@@ -76,7 +76,13 @@
       return;
     }
     const action = target.closest<HTMLButtonElement>('[data-action]')?.dataset.action;
-    if (action === 'help') this.showHelp();
+    if (action === 'walk-around') {
+      this.setPanelVisible(false);
+      this.callbacks.onStart();
+    } else if (action === 'display-mode') {
+      document.getElementById('display-mode-toggle')?.click();
+      this.renderPanel(true);
+    } else if (action === 'help') this.showHelp();
     else if (action === 'save') this.callbacks.onSave();
     else if (action === 'load') this.callbacks.onLoad();
     else if (action === 'end-day') this.callbacks.onEndDay();
