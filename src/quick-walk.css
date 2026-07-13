@@ -1,0 +1,90 @@
+#quick-walk-button {
+  position: fixed;
+  z-index: 24;
+  top: max(14px, calc(env(safe-area-inset-top) + 8px));
+  right: max(64px, calc(env(safe-area-inset-right) + 58px));
+  min-width: 118px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(223, 240, 250, 0.28);
+  border-radius: 999px;
+  background: rgba(8, 15, 22, 0.52);
+  color: rgba(237, 245, 251, 0.92);
+  padding: 0 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+}
+
+#quick-walk-button:hover,
+#quick-walk-button:focus-visible,
+#quick-walk-button:active {
+  border-color: rgba(103, 216, 255, 0.62);
+  background: rgba(103, 216, 255, 0.2);
+  color: #fff;
+}
+
+#quick-walk-button > span {
+  color: var(--accent);
+  font-size: 17px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+#quick-walk-button > strong {
+  font-size: 11px;
+  letter-spacing: 0.035em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#topbar {
+  right: 194px !important;
+}
+
+body.mobile-mode #quick-walk-button {
+  top: max(10px, calc(env(safe-area-inset-top) + 6px));
+  right: max(58px, calc(env(safe-area-inset-right) + 54px));
+  min-width: 104px;
+  height: 40px;
+  padding: 0 10px;
+}
+
+body.mobile-mode #quick-walk-button > strong {
+  font-size: 10px;
+}
+
+body.mobile-mode #topbar {
+  right: max(170px, calc(env(safe-area-inset-right) + 164px)) !important;
+}
+
+@media (orientation: portrait) and (max-width: 560px) {
+  body.mobile-mode #quick-walk-button {
+    min-width: 96px;
+    height: 38px;
+    right: max(54px, calc(env(safe-area-inset-right) + 50px));
+    padding: 0 8px;
+    gap: 5px;
+  }
+
+  body.mobile-mode #quick-walk-button > span {
+    font-size: 14px;
+  }
+
+  body.mobile-mode #quick-walk-button > strong {
+    font-size: 9px;
+  }
+
+  body.mobile-mode #topbar {
+    right: max(158px, calc(env(safe-area-inset-right) + 152px)) !important;
+  }
+}
+
+body.help-open #quick-walk-button,
+body.player-fired #quick-walk-button {
+  display: none !important;
+}
