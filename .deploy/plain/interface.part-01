@@ -26,6 +26,14 @@
       this.setPanelVisible(false);
       this.callbacks.onStart();
     });
+    this.requireElement<HTMLButtonElement>('quick-pause-button').addEventListener('click', () => {
+      this.hideHelp();
+      this.currentSpeed = 0;
+      this.callbacks.onSpeedChange(0);
+      this.activeTab = 'operations';
+      this.setPanelVisible(true);
+      this.renderPanel(false);
+    });
     this.requireElement<HTMLButtonElement>('panel-toggle').addEventListener('click', () => this.togglePanel());
     this.requireElement<HTMLElement>('panel-tabs').addEventListener('click', (event) => {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tab]');
@@ -115,22 +123,40 @@
       {
         id: '',
         name: 'Unassigned',
-        detail: 'Return this ticket to the queue',
+        role: 'Ticket queue',
+        fit: 'queue',
+        status: 'No technician assigned',
         color: 0x8795a1,
       },
-      ...this.state.technicians.map((technician) => ({
-        id: technician.id,
-        name: technician.name,
-        detail: `${technician.role} · ${this.skillFit(technician, ticket)} fit${technician.currentTicketId && technician.currentTicketId !== ticket.id ? ' · currently busy' : ''}`,
-        color: technician.color,
-      })),
+      ...this.state.technicians.map((technician) => {
+        const currentTicket = technician.currentTicketId
+          ? this.state.tickets.find((item) => item.id === technician.currentTicketId)
+          : undefined;
+        const currentTotal = currentTicket ? currentTicket.effort + currentTicket.hiddenComplexity : 0;
+        const currentProgress = currentTicket && currentTotal > 0
+          ? Math.round(clamp((1 - currentTicket.remaining / currentTotal) * 100))
+          : null;
+        return {
+          id: technician.id,
+          name: technician.name,
+          role: technician.role,
+          fit: this.skillFit(technician, ticket),
+          status: currentTicket ? `${currentTicket.id} · ${currentProgress ?? 0}% complete` : 'Available',
+          color: technician.color,
+        };
+      }),
     ].map((option) => {
       const selected = ticket.assignedTo === (option.id || null);
       const initial = option.id ? option.name.charAt(0) : '—';
+      const fitLabel = option.fit === 'queue' ? 'Queue' : `${option.fit} fit`;
       return `
         <button type="button" class="assignment-option ${selected ? 'selected' : ''}" role="option" aria-selected="${selected}" data-assignment-choice data-ticket-id="${ticket.id}" data-technician-id="${option.id}">
           <span class="assignment-avatar" style="--assignment-color:#${option.color.toString(16).padStart(6, '0')}">${escapeHtml(initial)}</span>
-          <span class="assignment-copy"><strong>${escapeHtml(option.name)}</strong><small>${escapeHtml(option.detail)}</small></span>
+          <span class="assignment-copy">
+            <strong>${escapeHtml(option.name)}</strong>
+            <small>${escapeHtml(option.role)}</small>
+            <span class="assignment-meta"><b class="fit-badge fit-${option.fit}">${escapeHtml(fitLabel)}</b><em>${escapeHtml(option.status)}</em></span>
+          </span>
           <span class="assignment-check" aria-hidden="true">${selected ? '✓' : ''}</span>
         </button>`;
     }).join('');
