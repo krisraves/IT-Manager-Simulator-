@@ -1,0 +1,238 @@
+/* Permanent pause control and consolidated pause-menu actions. */
+#display-mode-toggle {
+  display: none !important;
+}
+
+#quick-pause-button {
+  position: fixed;
+  z-index: 24;
+  top: max(14px, calc(env(safe-area-inset-top) + 8px));
+  right: max(14px, calc(env(safe-area-inset-right) + 8px));
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgba(223, 240, 250, 0.28);
+  border-radius: 50%;
+  background: rgba(8, 15, 22, 0.52);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+}
+
+#quick-pause-button:hover,
+#quick-pause-button:focus-visible,
+#quick-pause-button:active {
+  background: rgba(103, 216, 255, 0.2);
+  border-color: rgba(103, 216, 255, 0.58);
+}
+
+#quick-pause-button > span {
+  width: 4px;
+  height: 17px;
+  border-radius: 2px;
+  background: rgba(237, 245, 251, 0.88);
+  pointer-events: none;
+}
+
+#topbar {
+  right: 66px;
+}
+
+.pause-menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pause-menu-actions button {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #edf5fb;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.walk-around-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: rgba(103, 216, 255, 0.48) !important;
+  background: rgba(103, 216, 255, 0.11) !important;
+  color: var(--accent) !important;
+  font-weight: 900;
+}
+
+.walk-around-button span {
+  font-size: 18px;
+}
+
+.display-mode-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  text-align: left;
+}
+
+.display-mode-button span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.display-mode-button strong {
+  color: #edf5fb;
+  font-size: 12px;
+}
+
+.pause-menu-actions button:hover,
+.pause-menu-actions button:focus-visible {
+  border-color: rgba(103, 216, 255, 0.5);
+  background: rgba(103, 216, 255, 0.12);
+}
+
+.assignment-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.assignment-meta em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #b9cad6;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.fit-badge {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fit-strong {
+  border-color: rgba(112, 225, 165, 0.46);
+  color: var(--good);
+}
+
+.fit-adequate {
+  border-color: rgba(255, 198, 92, 0.46);
+  color: var(--warn);
+}
+
+.fit-weak {
+  border-color: rgba(255, 109, 120, 0.46);
+  color: var(--bad);
+}
+
+.fit-queue {
+  color: var(--muted);
+}
+
+body.mobile-mode #topbar {
+  right: max(58px, calc(env(safe-area-inset-right) + 52px));
+}
+
+body.mobile-mode #quick-pause-button {
+  top: max(10px, calc(env(safe-area-inset-top) + 6px));
+  right: max(10px, calc(env(safe-area-inset-right) + 6px));
+  width: 40px;
+  height: 40px;
+}
+
+body.mobile-mode .pause-menu-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+body.mobile-mode .assignment-option {
+  min-height: 70px;
+  align-items: center;
+}
+
+body.mobile-mode .assignment-copy {
+  gap: 1px;
+}
+
+body.mobile-mode .assignment-meta em {
+  font-size: 10px;
+}
+
+@media (orientation: portrait) and (max-width: 560px) {
+  body.mobile-mode #quick-pause-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  body.mobile-mode #quick-pause-button > span {
+    width: 3px;
+    height: 15px;
+  }
+
+  body.mobile-mode .pause-menu-actions {
+    grid-template-columns: 1fr;
+  }
+
+  body.mobile-mode .assignment-option {
+    min-height: 72px;
+    grid-template-columns: 34px minmax(0, 1fr) 20px;
+    gap: 7px;
+    padding: 7px 6px;
+  }
+
+  body.mobile-mode .assignment-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  body.mobile-mode .assignment-copy strong {
+    font-size: 12px;
+  }
+
+  body.mobile-mode .assignment-copy small {
+    font-size: 9px;
+  }
+
+  body.mobile-mode .assignment-meta {
+    gap: 4px;
+  }
+
+  body.mobile-mode .fit-badge {
+    padding: 2px 4px;
+    font-size: 8px;
+  }
+
+  body.mobile-mode .assignment-meta em {
+    font-size: 9px;
+  }
+
+  body.mobile-mode .assignment-check {
+    font-size: 15px;
+  }
+}
+
+.start-layer #quick-pause-button,
+body.help-open #quick-pause-button {
+  pointer-events: none;
+}
