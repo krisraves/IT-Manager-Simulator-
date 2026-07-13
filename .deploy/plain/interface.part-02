@@ -25,6 +25,7 @@
 
   private operationsPanel(): string {
     const flags = this.state.scriptedFlags;
+    const displayMode = document.getElementById('display-mode-toggle')?.dataset.mode ?? 'auto';
     return `
       <div class="panel-heading"><div><p class="eyebrow">OPERATIONS</p><h2>Budget and controls</h2></div></div>
       <div class="ops-grid">
@@ -33,13 +34,17 @@
       </div>
       <section class="control-card pause-control-card">
         <div class="control-card-heading">
-          <div><p class="eyebrow">PAUSE MENU</p><h3>Simulation speed</h3></div>
+          <div><p class="eyebrow">PAUSE MENU</p><h3>Simulation and view</h3></div>
           <button type="button" class="help-icon-button" data-action="help" aria-label="Open instructions, hints, and tips" title="How to play">?</button>
         </div>
         <div class="segmented-control">
           ${[0, 1, 4].map((speed) => `<button data-speed="${speed}" class="${this.currentSpeed === speed ? 'active' : ''}">${speed === 0 ? 'Paused' : `${speed}×`}</button>`).join('')}
         </div>
-        <p>One real second equals one game minute at 1×. There is no 16× button because panic is not a productivity tool.</p>
+        <div class="pause-menu-actions">
+          <button type="button" class="walk-around-button" data-action="walk-around"><span aria-hidden="true">⌖</span>Walk Around</button>
+          <button type="button" class="display-mode-button" data-action="display-mode"><span>Display</span><strong>${escapeHtml(displayMode.toUpperCase())}</strong></button>
+        </div>
+        <p>Walk Around returns to the office view. Display cycles between Auto, Mobile, and Desktop controls.</p>
       </section>
       <section class="control-card save-controls">
         <h3>Save and shift controls</h3>
