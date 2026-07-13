@@ -76,9 +76,23 @@
       return;
     }
     const action = target.closest<HTMLButtonElement>('[data-action]')?.dataset.action;
-    if (action === 'save') this.callbacks.onSave();
+    if (action === 'help') this.showHelp();
+    else if (action === 'save') this.callbacks.onSave();
     else if (action === 'load') this.callbacks.onLoad();
     else if (action === 'end-day') this.callbacks.onEndDay();
+  };
+
+  private readonly onHelpClick = (event: Event): void => {
+    const target = event.target as HTMLElement;
+    if (target.closest('[data-action="close-help"]') || target.id === 'help-modal') this.hideHelp();
+  };
+
+  private readonly onGlobalKeyDown = (event: KeyboardEvent): void => {
+    if (event.code === 'Escape' && this.helpOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.hideHelp();
+    }
   };
 
   private readonly onPanelScroll = (event: Event): void => {
