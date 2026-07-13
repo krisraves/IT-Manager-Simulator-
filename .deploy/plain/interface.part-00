@@ -33,6 +33,7 @@ export class GameInterface {
   private state: Readonly<GameState>;
   private panelVisible = true;
   private panelInitialized = false;
+  private helpOpen = false;
   private activeTab: PanelTab = 'tickets';
   private selectedTicketId: string | null = null;
   private openAssignmentTicketId: string | null = null;
@@ -50,6 +51,7 @@ export class GameInterface {
     this.state = initialState;
     this.callbacks = callbacks;
     this.renderShell();
+    document.addEventListener('keydown', this.onGlobalKeyDown);
     this.render(initialState);
   }
 
@@ -139,7 +141,10 @@ export class GameInterface {
 
   public setPanelVisible(visible: boolean): void {
     this.panelVisible = visible;
-    if (!visible) this.openAssignmentTicketId = null;
+    if (!visible) {
+      this.openAssignmentTicketId = null;
+      this.hideHelp();
+    }
 
     if (visible && (this.pendingPanelRender || !this.panelInitialized)) {
       this.renderPanel(true);
@@ -157,6 +162,95 @@ export class GameInterface {
 
   public dismissStartOverlay(): void {
     this.requireElement<HTMLElement>('start-overlay').hidden = true;
+  }
+
+  private showHelp(): void {
+    this.helpOpen = true;
+    const modal = this.requireElement<HTMLElement>('help-modal');
+    modal.hidden = false;
+    document.body.classList.add('help-open');
+    window.requestAnimationFrame(() => {
+      modal.querySelector<HTMLButtonElement>('[data-action="close-help"]')?.focus({ preventScroll: true });
+    });
+  }
+
+  private hideHelp(): void {
+    if (!this.helpOpen) return;
+    this.helpOpen = false;
+    this.requireElement<HTMLElement>('help-modal').hidden = true;
+    document.body.classList.remove('help-open');
+    document.querySelector<HTMLButtonElement>('[data-action="help"]')?.focus({ preventScroll: true });
+  }
+
+  private helpPanelMarkup(): string {
+    return `
+      <div id="help-modal" class="modal-layer help-layer" hidden>
+        <section class="modal-card help-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+          <header class="help-header">
+            <div><p class="eyebrow">IT OPERATIONS FIELD MANUAL</p><h2 id="help-title">How to survive the shift</h2></div>
+            <button type="button" class="help-close-button" data-action="close-help" aria-label="Close instructions">×</button>
+          </header>
+          <div class="help-scroll">
+            <section class="help-section help-objective">
+              <h3>Your objective</h3>
+              <p>Keep the company operating until 5:00 PM. Resolve important tickets, protect uptime and security, avoid SLA breaches, and keep the team functional enough to return tomorrow.</p>
+            </section>
+            <section class="help-section">
+              <h3>Controls</h3>
+              <div class="help-control-grid desktop-help">
+                <span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Look</span><span><kbd>E</kbd> Interact</span><span><kbd>Tab</kbd> Console</span><span><kbd>Esc</kbd> Release cursor</span>
+              </div>
+              <div class="help-control-grid mobile-help">
+                <span><kbd>◉</kbd> Left joystick moves</span><span><kbd>↔</kbd> Drag right side to look</span><span><kbd>USE</kbd> Interact</span><span><kbd>CONSOLE</kbd> Manage IT</span><span><kbd>1×</kbd> Change speed</span>
+              </div>
+            </section>
+            <section class="help-section">
+              <h3>Ticket priorities</h3>
+              <div class="help-priority-grid">
+                <article><b class="help-priority p1">P1</b><span>Critical. Handle immediately.</span></article>
+                <article><b class="help-priority p2">P2</b><span>High impact. Do not let it drift.</span></article>
+                <article><b class="help-priority p3">P3</b><span>Normal work. Match the right skill.</span></article>
+                <article><b class="help-priority p4">P4</b><span>Low urgency. Useful for junior staff.</span></article>
+              </div>
+              <p>Every ticket has an SLA deadline. A breach adds work, reduces satisfaction, and may damage executive confidence.</p>
+            </section>
+            <section class="help-section">
+              <h3>Assigning technicians</h3>
+              <ol class="help-steps">
+                <li>Open <strong>Tickets</strong> and select a ticket.</li>
+                <li>Open the assignment list and compare each technician's skill fit.</li>
+                <li>Choose a technician. Reassigning a busy technician returns their previous ticket to the queue.</li>
+              </ol>
+              <p>Strong skill fit and high accuracy reduce failed fixes. Stress, fatigue, and skill gaps increase mistakes.</p>
+            </section>
+            <section class="help-section">
+              <h3>Managing the department</h3>
+              <div class="help-tip-grid">
+                <article><strong>Morale and stress</strong><span>Overloaded staff work worse. Coffee, successful resolutions, and sensible assignments help.</span></article>
+                <article><strong>Budget</strong><span>Training improves technicians. Spares accelerate hardware work. Monitoring softens outages and security problems.</span></article>
+                <article><strong>Walk the floor</strong><span>Inspect the printer and server rack, brief the executive, and talk to technicians for useful context and small operational bonuses.</span></article>
+                <article><strong>Management decisions</strong><span>Incidents force tradeoffs between budget, uptime, security, confidence, and team stress. There is rarely a free option because this is IT.</span></article>
+              </div>
+            </section>
+            <section class="help-section">
+              <h3>Useful hints</h3>
+              <ul class="help-tips">
+                <li>Security tickets belong with Priya or Maya unless you enjoy preventable incident reports.</li>
+                <li>Leo is your strongest hardware and user-support option.</li>
+                <li>Nate develops faster when trained and assigned lower-risk work.</li>
+                <li>Check the production certificate early; deadlines do not respect stand-up meetings.</li>
+                <li>Pause the simulation before reorganizing several assignments.</li>
+                <li>Save periodically. IndexedDB is reliable, but confidence is not a backup strategy.</li>
+              </ul>
+            </section>
+            <section class="help-section">
+              <h3>End-of-day score</h3>
+              <p>Your grade combines uptime, SLA performance, security, morale, executive confidence, user satisfaction, reputation, resolved work, backlog, and technical debt.</p>
+            </section>
+          </div>
+          <footer class="help-footer"><button type="button" class="primary-button" data-action="close-help">Back to the console</button></footer>
+        </section>
+      </div>`;
   }
 
   private renderShell(): void {
@@ -180,3 +274,4 @@ export class GameInterface {
         <div id="toast" hidden role="status"></div>
         <div id="decision-modal" class="modal-layer" hidden></div>
         <div id="summary-modal" class="modal-layer" hidden></div>
+        ${this.helpPanelMarkup()}
