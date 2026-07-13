@@ -258,6 +258,9 @@ export class GameInterface {
       <main id="game-shell">
         <div id="world-host"></div>
         <header id="topbar" aria-label="Department metrics"></header>
+        <button id="quick-pause-button" type="button" aria-label="Pause and open operations" title="Pause">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </button>
         <button id="panel-toggle" class="floating-button" aria-expanded="true">Close console</button>
         <aside id="management-panel" aria-label="Management console">
           <nav id="panel-tabs" aria-label="Console sections">
