@@ -53,6 +53,7 @@ gradle --version
 
 cd "$BUILD_DIR"
 sed -i 's/compileSdk = 37/compileSdk = 36/; s/targetSdk = 37/targetSdk = 36/' app/build.gradle.kts
+sed -i '/^android\\.defaults\\.buildfeatures\\./d' gradle.properties
 gradle :app:assembleDebug --stacktrace --no-daemon
 
 cd "$ROOT"
