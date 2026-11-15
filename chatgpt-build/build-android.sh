@@ -54,6 +54,7 @@ gradle --version
 cd "$BUILD_DIR"
 sed -i 's/lifecycle-runtime-compose:2.12.0/lifecycle-runtime-compose:2.11.0/; s/lifecycle-viewmodel-compose:2.12.0/lifecycle-viewmodel-compose:2.11.0/' app/build.gradle.kts
 sed -i '/android.defaults.buildfeatures/d' gradle.properties
+sed -i '/^fun AppRoot/i @OptIn(ExperimentalMaterial3Api::class)' app/src/main/java/com/comediancompanion/app/ui/AppRoot.kt
 gradle :app:assembleDebug --stacktrace --no-daemon
 
 cd "$ROOT"
