@@ -35,7 +35,7 @@ if ! command -v sdkmanager >/dev/null 2>&1; then
 fi
 
 yes | sdkmanager --licenses >/dev/null || true
-sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+android --sdk="$SDK_DIR" sdk install platforms/android-37 build-tools/36.0.0 platform-tools
 
 if [ ! -x "$GRADLE_DIR/bin/gradle" ]; then
   echo "Installing Gradle 9.6.0..."
@@ -52,7 +52,7 @@ export PATH="$GRADLE_DIR/bin:$PATH"
 gradle --version
 
 cd "$BUILD_DIR"
-sed -i 's/compileSdk = 37/compileSdk = 36/; s/targetSdk = 37/targetSdk = 36/; s/lifecycle-runtime-compose:2.12.0/lifecycle-runtime-compose:2.11.0/; s/lifecycle-viewmodel-compose:2.12.0/lifecycle-viewmodel-compose:2.11.0/' app/build.gradle.kts
+sed -i 's/lifecycle-runtime-compose:2.12.0/lifecycle-runtime-compose:2.11.0/; s/lifecycle-viewmodel-compose:2.12.0/lifecycle-viewmodel-compose:2.11.0/' app/build.gradle.kts
 sed -i '/android.defaults.buildfeatures/d' gradle.properties
 gradle :app:assembleDebug --stacktrace --no-daemon
 
