@@ -61,4 +61,3 @@ cd "$ROOT"
 mkdir -p dist
 cp "$BUILD_DIR/app/build/outputs/apk/debug/app-debug.apk" dist/comedian-companion-debug.apk
 sha256sum dist/comedian-companion-debug.apk | tee dist/comedian-companion-debug.apk.sha256
-node chatgpt-build/upload-artifact.mjs
