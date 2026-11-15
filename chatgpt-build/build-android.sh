@@ -39,6 +39,7 @@ sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 if [ ! -x "$GRADLE_DIR/bin/gradle" ]; then
   echo "Installing Gradle 9.6.0..."
+  mkdir -p "$(dirname "$GRADLE_DIR")"
   rm -rf "$GRADLE_DIR"
   curl -fL --retry 3 https://services.gradle.org/distributions/gradle-9.6.0-bin.zip -o /tmp/gradle-9.6.0-bin.zip
   rm -rf /tmp/gradle-unpack
