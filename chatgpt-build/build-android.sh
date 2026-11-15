@@ -35,7 +35,7 @@ if ! command -v sdkmanager >/dev/null 2>&1; then
 fi
 
 yes | sdkmanager --licenses >/dev/null || true
-sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 if [ ! -x "$GRADLE_DIR/bin/gradle" ]; then
   echo "Installing Gradle 9.6..."
@@ -51,6 +51,7 @@ export PATH="$GRADLE_DIR/bin:$PATH"
 gradle --version
 
 cd "$BUILD_DIR"
+sed -i 's/compileSdk = 37/compileSdk = 36/; s/targetSdk = 37/targetSdk = 36/' app/build.gradle.kts
 gradle :app:assembleDebug --stacktrace --no-daemon
 
 cd "$ROOT"
