@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$PWD"
 BUILD_DIR="$ROOT/chatgpt-build/work"
 SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/android-sdk}}"
-GRADLE_DIR="$HOME/.cache/comedian-companion-gradle-9.6"
+GRADLE_DIR="$HOME/.cache/comedian-companion-gradle-9.6.0"
 
 echo "Reconstructing Android project..."
 rm -rf "$BUILD_DIR"
@@ -38,13 +38,13 @@ yes | sdkmanager --licenses >/dev/null || true
 sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 if [ ! -x "$GRADLE_DIR/bin/gradle" ]; then
-  echo "Installing Gradle 9.6..."
+  echo "Installing Gradle 9.6.0..."
   rm -rf "$GRADLE_DIR"
-  curl -fL --retry 3 https://services.gradle.org/distributions/gradle-9.6-bin.zip -o /tmp/gradle-9.6-bin.zip
+  curl -fL --retry 3 https://services.gradle.org/distributions/gradle-9.6.0-bin.zip -o /tmp/gradle-9.6.0-bin.zip
   rm -rf /tmp/gradle-unpack
   mkdir -p /tmp/gradle-unpack
-  unzip -q /tmp/gradle-9.6-bin.zip -d /tmp/gradle-unpack
-  mv /tmp/gradle-unpack/gradle-9.6 "$GRADLE_DIR"
+  unzip -q /tmp/gradle-9.6.0-bin.zip -d /tmp/gradle-unpack
+  mv /tmp/gradle-unpack/gradle-9.6.0 "$GRADLE_DIR"
 fi
 export PATH="$GRADLE_DIR/bin:$PATH"
 
